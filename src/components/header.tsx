@@ -13,7 +13,8 @@ import {
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import { Search, Menu, Headphones, User, LogIn } from "lucide-react"
 import Link from "next/link"
-import { ModeToggle } from "@/components/mode-toggle"
+import ModeToggle from "@/components/mode-toggle"
+
 
 const categories = [
   { title: "Fiction", href: "/categories/fiction" },
@@ -24,7 +25,7 @@ const categories = [
   { title: "Biography", href: "/categories/biography" },
 ]
 
-export default function AudiobookHeader() {
+export default function Header() {
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center justify-between px-4">
