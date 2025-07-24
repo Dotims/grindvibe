@@ -10,13 +10,13 @@ export const metadata: Metadata = {
   description: "Discover and listen to your favorite audiobooks for free in a beautiful bookish experience.",
 };
 
-export default function RootLayout() {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pl">
       <body cz-shortcut-listen="true" suppressHydrationWarning>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <Header />
-          <Home />
+          {children}
           <Footer />
         </ThemeProvider>
       </body>
