@@ -16,12 +16,12 @@ import Link from "next/link"
 import ModeToggle from "@/components/mode-toggle"
 
 const categories = [
-  { title: "Fiction", href: "/categories/fiction" },
-  { title: "Non-Fiction", href: "/categories/non-fiction" },
-  { title: "Mystery & Thriller", href: "/categories/mystery" },
-  { title: "Romance", href: "/categories/romance" },
-  { title: "Sci-Fi & Fantasy", href: "/categories/sci-fi" },
-  { title: "Biography", href: "/categories/biography" },
+  { title: "Fikcja", href: "/categories/fiction" },
+  { title: "Literatura faktu", href: "/categories/non-fiction" },
+  { title: "Kryminał i thriller", href: "/categories/mystery" },
+  { title: "Romans", href: "/categories/romance" },
+  { title: "Sci‑Fi i fantasy", href: "/categories/sci-fi" },
+  { title: "Biografia", href: "/categories/biography" },
 ]
 
 export default function Header() {
@@ -44,7 +44,7 @@ export default function Header() {
                     href="/"
                     className="group inline-flex h-10 w-max items-center justify-center rounded-md bg-background px-3 xl:px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none disabled:pointer-events-none disabled:opacity-50"
                   >
-                    Home
+                    Strona główna
                   </Link>
                 </NavigationMenuLink>
               </NavigationMenuItem>
@@ -55,13 +55,13 @@ export default function Header() {
                     href="/library"
                     className="group inline-flex h-10 w-max items-center justify-center rounded-md bg-background px-3 xl:px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none disabled:pointer-events-none disabled:opacity-50"
                   >
-                    Library
+                    Biblioteka
                   </Link>
                 </NavigationMenuLink>
               </NavigationMenuItem>
 
               <NavigationMenuItem>
-                <NavigationMenuTrigger className="px-3 xl:px-4">Categories</NavigationMenuTrigger>
+                <NavigationMenuTrigger className="px-3 xl:px-4">Kategorie</NavigationMenuTrigger>
                 <NavigationMenuContent>
                   <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
                     {categories.map((category) => (
@@ -86,7 +86,7 @@ export default function Header() {
                     href="/about"
                     className="group inline-flex h-10 w-max items-center justify-center rounded-md bg-background px-3 xl:px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none disabled:pointer-events-none disabled:opacity-50"
                   >
-                    About
+                    O nas
                   </Link>
                 </NavigationMenuLink>
               </NavigationMenuItem>
@@ -96,7 +96,7 @@ export default function Header() {
           {/* Search Bar - Responsive width */}
           <div className="relative flex-shrink-0">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input type="search" placeholder="Search audiobooks..." className="w-48 xl:w-64 pl-10" />
+            <Input type="search" placeholder="Szukaj audiobooków..." className="w-48 xl:w-64 pl-10" />
           </div>
         </div>
 
@@ -105,7 +105,7 @@ export default function Header() {
           {/* Compact Search */}
           <div className="relative flex-shrink-0">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input type="search" placeholder="Search..." className="w-40 pl-10" />
+            <Input type="search" placeholder="Szukaj..." className="w-40 pl-10" />
           </div>
 
           {/* Navigation Menu Button */}
@@ -113,7 +113,7 @@ export default function Header() {
             <SheetTrigger asChild>
               <Button variant="ghost" size="sm">
                 <Menu className="h-4 w-4" />
-                <span className="sr-only">Toggle menu</span>
+                <span className="sr-only">Przełącz menu</span>
               </Button>
             </SheetTrigger>
             <SheetContent side="right" className="w-[300px] sm:w-[400px] p-6">
@@ -125,14 +125,14 @@ export default function Header() {
               </SheetHeader>
               <nav className="flex flex-col space-y-4 mt-6">
                 <Link href="/" className="text-lg font-medium hover:text-primary transition-colors">
-                  Home
+                  Strona główna
                 </Link>
                 <Link href="/library" className="text-lg font-medium hover:text-primary transition-colors">
-                  Library
+                  Biblioteka
                 </Link>
 
                 <div className="space-y-2">
-                  <h3 className="text-lg font-medium">Categories</h3>
+                  <h3 className="text-lg font-medium">Kategorie</h3>
                   <div className="pl-4 space-y-2">
                     {categories.map((category) => (
                       <Link
@@ -147,24 +147,24 @@ export default function Header() {
                 </div>
 
                 <Link href="/about" className="text-lg font-medium hover:text-primary transition-colors">
-                  About
+                  O nas
                 </Link>
 
                 <div className="pt-4 border-t space-y-2">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium">Theme</span>
+                    <span className="text-sm font-medium">Motyw</span>
                     <ModeToggle />
                   </div>
                   <Button variant="ghost" className="w-full justify-start" asChild>
-                    <Link href="/login">
+                    <Link href="/auth/login">
                       <LogIn className="h-4 w-4 mr-2" />
-                      Login
+                      Zaloguj się
                     </Link>
                   </Button>
                   <Button className="w-full justify-start" asChild>
-                    <Link href="/signup">
+                    <Link href="signup">
                       <User className="h-4 w-4 mr-2" />
-                      Sign Up
+                      Zarejestruj się
                     </Link>
                   </Button>
                 </div>
@@ -177,15 +177,15 @@ export default function Header() {
         <div className="hidden lg:flex items-center space-x-1 xl:space-x-2 flex-shrink-0">
           <ModeToggle />
           <Button variant="ghost" size="sm" asChild>
-            <Link href="/login">
+            <Link href="/auth/login">
               <LogIn className="h-4 w-4 mr-2" />
-              Login
+              Zaloguj się
             </Link>
           </Button>
           <Button size="sm" asChild>
-            <Link href="/signup">
+            <Link href="signup">
               <User className="h-4 w-4 mr-2" />
-              Sign Up
+              Zarejestruj się
             </Link>
           </Button>
         </div>
@@ -195,14 +195,14 @@ export default function Header() {
           {/* Mobile Search */}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input type="search" placeholder="Search..." className="w-32 pl-10 text-xs" />
+            <Input type="search" placeholder="Szukaj..." className="w-32 pl-10 text-xs" />
           </div>
 
           <Sheet>
             <SheetTrigger asChild>
               <Button variant="ghost" size="sm">
                 <Menu className="h-5 w-5" />
-                <span className="sr-only">Toggle menu</span>
+                <span className="sr-only">Przełącz menu</span>
               </Button>
             </SheetTrigger>
             <SheetContent side="right" className="w-[300px] sm:w-[400px] p-6">
@@ -214,14 +214,14 @@ export default function Header() {
               </SheetHeader>
               <nav className="flex flex-col space-y-4 mt-6">
                 <Link href="/" className="text-lg font-medium hover:text-primary transition-colors">
-                  Home
+                  Strona główna
                 </Link>
                 <Link href="/library" className="text-lg font-medium hover:text-primary transition-colors">
-                  Library
+                  Biblioteka
                 </Link>
 
                 <div className="space-y-2">
-                  <h3 className="text-lg font-medium">Categories</h3>
+                  <h3 className="text-lg font-medium">Kategorie</h3>
                   <div className="pl-4 space-y-2">
                     {categories.map((category) => (
                       <Link
@@ -236,24 +236,24 @@ export default function Header() {
                 </div>
 
                 <Link href="/about" className="text-lg font-medium hover:text-primary transition-colors">
-                  About
+                  O nas
                 </Link>
 
                 <div className="pt-4 border-t space-y-2">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium">Theme</span>
+                    <span className="text-sm font-medium">Motyw</span>
                     <ModeToggle />
                   </div>
                   <Button variant="ghost" className="w-full justify-start" asChild>
-                    <Link href="/login">
+                    <Link href="/auth/login">
                       <LogIn className="h-4 w-4 mr-2" />
-                      Login
+                      Zaloguj się
                     </Link>
                   </Button>
                   <Button className="w-full justify-start" asChild>
-                    <Link href="/signup">
+                    <Link href="auth/register">
                       <User className="h-4 w-4 mr-2" />
-                      Sign Up
+                      Zarejestruj się
                     </Link>
                   </Button>
                 </div>

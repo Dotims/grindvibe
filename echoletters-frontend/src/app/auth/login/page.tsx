@@ -1,11 +1,11 @@
 "use client"
 
+import { AuthShowcase } from "@/components/AuthShowcase"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
-import { Headphones, Eye, EyeOff } from "lucide-react"
-import Image from "next/image"
+import { Eye, EyeOff } from "lucide-react"
 import Link from "next/link"
 import { useState } from "react"
 
@@ -13,36 +13,32 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="flex flex-col lg:flex-row min-h-screen">
+    <div className="bg-background">
+      <div className="flex flex-col lg:flex-row min-h-[50vh] max-h-[80vh]">
         {/* Left Side - Form */}
-        <div className="flex-1 flex items-center justify-center p-6 lg:p-12">
-          <div className="w-full max-w-md space-y-8">
+        <div className="w-full !md:w-[60%] !lg:w-[60%] flex items-center justify-center p-6 lg:p-12">
+          <div className="w-full max-w-md lg:max-w-xl xl:max-w-2xl space-y-8">
             {/* Header */}
             <div className="text-center space-y-2">
-              <Link href="/" className="inline-flex items-center space-x-2 mb-6">
-                <Headphones className="h-8 w-8 text-primary" />
-                <span className="text-2xl font-bold text-foreground">EchoLetters</span>
-              </Link>
-              <h1 className="text-3xl font-bold text-foreground">Welcome back</h1>
-              <p className="text-muted-foreground">Sign in to your account to continue your audio journey</p>
+              <h1 className="text-3xl font-bold text-foreground">Witaj ponownie</h1>
+              <p className="text-muted-foreground">Zaloguj się, aby kontynuować swoją audio‑podróż</p>
             </div>
 
             {/* Form */}
             <form className="space-y-6">
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email address</Label>
-                  <Input id="email" type="email" placeholder="Enter your email" className="h-12" required />
+                  <Label htmlFor="email">Adres e‑mail</Label>
+                  <Input id="email" type="email" placeholder="Wpisz swój e‑mail" className="h-12" required />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
+                  <Label htmlFor="password">Hasło</Label>
                   <div className="relative">
                     <Input
                       id="password"
                       type={showPassword ? "text" : "password"}
-                      placeholder="Enter your password"
+                      placeholder="Wpisz swoje hasło"
                       className="h-12 pr-12"
                       required
                     />
@@ -60,49 +56,46 @@ export default function LoginPage() {
                   <div className="flex items-center space-x-2">
                     <input id="remember" type="checkbox" className="rounded border-input" />
                     <Label htmlFor="remember" className="text-sm">
-                      Remember me
+                      Zapamiętaj mnie
                     </Label>
                   </div>
                   <Link href="/auth/forgot-password" className="text-sm text-primary hover:underline">
-                    Forgot password?
+                    Zapomniałeś hasła?
                   </Link>
                 </div>
               </div>
 
               <Button type="submit" className="w-full h-12 text-white" style={{ backgroundColor: "#FF7D29" }}>
-                Sign in
+                Zaloguj się
               </Button>
 
               <div className="relative">
                 <Separator />
                 <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-background px-2 text-xs text-muted-foreground">
-                  OR
+                  LUB
                 </span>
               </div>
 
               <Button variant="outline" className="w-full h-12 bg-transparent">
-                Continue with Google
+                Kontynuuj przez Google
               </Button>
             </form>
 
             <p className="text-center text-sm text-muted-foreground">
-              Dont have an account?{" "}
+              Nie masz konta?{" "}
               <Link href="/auth/register" className="text-primary hover:underline font-medium">
-                Sign up
+                Zarejestruj się
               </Link>
             </p>
           </div>
         </div>
 
-        {/* Right Side - Image */}
-        <div className="flex-1 relative bg-muted lg:block">
-          <Image
-            src="/placeholder.svg?height=800&width=600"
-            alt="Person enjoying audiobooks in a comfortable reading environment"
-            fill
-            className="object-cover rounded-l-2xl"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent rounded-l-2xl" />
+        {/* Right Side - ShowCase */}
+        <div className="hidden lg:flex !w-auto !lg:w-[40%] relative bg-muted items-stretch ">
+          <div className="flex-1 h-full">
+            <AuthShowcase />
+          </div>
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/20 to-transparent rounded-l-2xl" />
         </div>
       </div>
     </div>
