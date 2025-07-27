@@ -17,10 +17,10 @@ export default function HeroSection() {
         <div className="flex flex-col lg:flex-row items-center justify-between gap-12 lg:gap-16">
           <div className="flex-1 text-center lg:text-left space-y-6 lg:space-y-8">
             <h1 className="text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold text-foreground leading-tight">
-              Get your imagination going
+              Rozbudź swoją wyobraźnię
             </h1>
             <p className="text-lg md:text-xl lg:text-2xl text-muted-foreground max-w-2xl mx-auto lg:mx-0">
-              Stories brought to life by captivating voices.
+              Historie ożywione przez urzekające głosy.
             </p>
             <div className="pt-4">
               <Button
@@ -28,7 +28,7 @@ export default function HeroSection() {
                 className="text-lg px-8 py-6 rounded-full shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 text-white"
                 style={{ backgroundColor: "#FF7D29" }}
               >
-                Get Started
+                Rozpocznij
               </Button>
             </div>
           </div>
@@ -39,7 +39,7 @@ export default function HeroSection() {
               <div className="absolute top-8 left-0 w-40 h-48 md:w-48 md:h-56 xl:w-52 xl:h-60 transform -rotate-12 hover:rotate-0 hover:scale-110 transition-all duration-500 z-20">
                 <Image
                   src="/featured-books/featured-psycho.png"
-                  alt="Mystery Thriller Audiobook"
+                  alt="Audiobook kryminalny / thriller"
                   fill
                   className="object-cover rounded-lg shadow-xl !w-auto"
                 />
@@ -49,7 +49,7 @@ export default function HeroSection() {
               <div className="absolute top-4 right-10 w-36 h-44 md:w-44 md:h-52 xl:w-48 xl:h-56 transform rotate-6 hover:rotate-0 hover:scale-110 transition-all duration-500 z-10">
                 <Image
                   src="/featured-books/featured-romantic.png"
-                  alt="Romance Audiobook"
+                  alt="Audiobook romans"
                   fill
                   className="object-cover rounded-lg shadow-xl !w-auto"
                 />
@@ -59,7 +59,7 @@ export default function HeroSection() {
               <div className="absolute top-30 left-20 w-40 h-48 md:w-48 md:h-56 xl:w-52 xl:h-60 transform rotate-3 hover:rotate-0 hover:scale-110 transition-all duration-500 z-30">
                 <Image
                   src="/featured-books/featured-fantasy.png"
-                  alt="Fantasy Adventure Audiobook"
+                  alt="Audiobook fantasy – przygoda"
                   fill
                   className="object-cover rounded-lg shadow-xl !w-auto"
                 />
@@ -69,7 +69,7 @@ export default function HeroSection() {
               <div className="absolute top-35 right-32 w-40 h-48 md:w-48 md:h-56 xl:w-52 xl:h-60 transform -rotate-6 hover:rotate-0 hover:scale-110 transition-all duration-500 z-15">
                 <Image
                   src="/featured-books/featured-scienceFiction.png"
-                  alt="Science Fiction Audiobook"
+                  alt="Audiobook science fiction"
                   fill
                   className="object-cover rounded-lg shadow-xl !w-auto"
                 />
@@ -79,7 +79,7 @@ export default function HeroSection() {
               <div className="absolute bottom-5 left-10 w-36 h-44 md:w-44 md:h-52 xl:w-48 xl:h-56 transform rotate-12 hover:rotate-0 hover:scale-110 transition-all duration-500 z-25">
                 <Image
                   src="/featured-books/featured-selfHelp.png"
-                  alt="Self Help Audiobook"
+                  alt="Audiobook rozwojowy (self‑help)"
                   fill
                   className="object-cover rounded-lg shadow-xl !w-auto"
                 />
@@ -89,7 +89,7 @@ export default function HeroSection() {
               <div className="absolute bottom-0 right-20 w-38 h-46 md:w-46 md:h-54 xl:w-50 xl:h-58 transform -rotate-3 hover:rotate-0 hover:scale-110 transition-all duration-500 z-20">
                 <Image
                   src="/featured-books/featured-historical.png"
-                  alt="Historical Fiction Audiobook"
+                  alt="Audiobook – powieść historyczna"
                   fill
                   className="object-cover rounded-lg shadow-xl !w-auto"
                 />

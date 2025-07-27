@@ -6,37 +6,37 @@ const reviews = [
   {
     name: "Jack",
     username: "@jack",
-    body: "Absolutely loved this audiobook. The narration was top-tier.",
+    body: "Absolutnie pokochałem ten audiobook. Narracja była na najwyższym poziomie.",
     img: "/featured-books/featured-psycho.png",
   },
   {
     name: "Jill",
     username: "@jill",
-    body: "Immersive experience. Felt like watching a movie with my ears.",
+    body: "Immersyjne doświadczenie. Czułem się, jakbym oglądał film uszami.",
     img: "/featured-books/featured-romantic.png",
   },
   {
     name: "John",
     username: "@john",
-    body: "The voice acting brought the characters to life. Brilliant!",
+    body: "Aktorstwo głosowe ożywiło bohaterów. Genialne!",
     img: "/featured-books/featured-fantasy.png",
   },
   {
     name: "Jane",
     username: "@jane",
-    body: "Never thought an audiobook could be this emotional.",
+    body: "Nie sądziłam, że audiobook może być tak emocjonalny.",
     img: "/featured-books/featured-scienceFiction.png",
   },
   {
     name: "Jenny",
     username: "@jenny",
-    body: "Fascinating story and great pacing. Highly recommend.",
+    body: "Fascynująca historia i świetne tempo. Gorąco polecam.",
     img: "/featured-books/featured-historical.png",
   },
   {
     name: "James",
     username: "@james",
-    body: "Listened twice already. Can’t wait for more titles like this!",
+    body: "Słuchałem już dwa razy. Nie mogę się doczekać kolejnych tytułów w tym stylu!",
     img: "/featured-books/featured-selfHelp.png",
   },
 ];
@@ -63,24 +63,24 @@ const ReviewCard = ({
         "dark:border-gray-50/[.1] dark:bg-gray-50/[.10] dark:hover:bg-gray-50/[.15]"
       )}
     >
-      {/* Left image - audiobook cover */}
+      {/* Lewa strona - okładka audiobooka */}
       <div className="relative w-1/2 h-full">
         <Image
           src={img}
-          alt="Audiobook cover"
+          alt="Okładka audiobooka"
           fill
           className="object-cover rounded-l-xl"
         />
       </div>
 
-      {/* Right content */}
+      {/* Prawa strona - treść */}
       <div className="w-1/2 h-full p-4 flex flex-col justify-items-start">
-        {/* Avatar + name */}
+        {/* Avatar + imię */}
         <div className="flex items-center gap-3">
           <div className="relative w-10 h-10 rounded-full overflow-hidden">
             <Image
               src="/default_user.png"
-              alt="User avatar"
+              alt="Avatar użytkownika"
               fill
               className="object-cover"
             />
@@ -93,7 +93,7 @@ const ReviewCard = ({
           </div>
         </div>
 
-        {/* Review text */}
+        {/* Treść recenzji */}
         <blockquote className="text-sm leading-snug text-muted-foreground dark:text-white/80 mt-2 line-clamp-4">
           {body}
         </blockquote>
@@ -116,7 +116,7 @@ export default function Slider() {
         ))}
       </Marquee>
 
-      {/* Gradient fades */}
+      {/* Gradientowe wygaszenia */}
       <div className="pointer-events-none absolute inset-y-0 left-0 w-1/4 bg-gradient-to-r from-background"></div>
       <div className="pointer-events-none absolute inset-y-0 right-0 w-1/4 bg-gradient-to-l from-background"></div>
     </div>

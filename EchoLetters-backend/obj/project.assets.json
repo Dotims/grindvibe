@@ -81,11 +81,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\rados\\Desktop\\projects\\react_Csharp\\backend\\EchoLettersAPI\\EchoLettersAPI.csproj",
+      "projectUniqueName": "C:\\Users\\rados\\Desktop\\projects\\react_Csharp\\echoletters\\EchoLetters-backend\\EchoLettersAPI.csproj",
       "projectName": "EchoLettersAPI",
-      "projectPath": "C:\\Users\\rados\\Desktop\\projects\\react_Csharp\\backend\\EchoLettersAPI\\EchoLettersAPI.csproj",
+      "projectPath": "C:\\Users\\rados\\Desktop\\projects\\react_Csharp\\echoletters\\EchoLetters-backend\\EchoLettersAPI.csproj",
       "packagesPath": "C:\\Users\\rados\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\rados\\Desktop\\projects\\react_Csharp\\backend\\EchoLettersAPI\\obj\\",
+      "outputPath": "C:\\Users\\rados\\Desktop\\projects\\react_Csharp\\echoletters\\EchoLetters-backend\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"

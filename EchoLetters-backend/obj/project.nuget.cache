@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "aQ7jkn4Ji7I=",
+  "dgSpecHash": "vrVsryO58Ws=",
   "success": true,
-  "projectFilePath": "C:\\Users\\rados\\Desktop\\projects\\react_Csharp\\backend\\EchoLettersAPI\\EchoLettersAPI.csproj",
+  "projectFilePath": "C:\\Users\\rados\\Desktop\\projects\\react_Csharp\\echoletters\\EchoLetters-backend\\EchoLettersAPI.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\rados\\.nuget\\packages\\microsoft.aspnetcore.openapi\\9.0.7\\microsoft.aspnetcore.openapi.9.0.7.nupkg.sha512",
     "C:\\Users\\rados\\.nuget\\packages\\microsoft.openapi\\1.6.17\\microsoft.openapi.1.6.17.nupkg.sha512"
