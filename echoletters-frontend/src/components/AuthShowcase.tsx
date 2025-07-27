@@ -4,8 +4,20 @@ import { Marquee } from "@/components/magicui/marquee";
 
 const reviews = [
   {
+    name: "test1",
+    username: "@test1",
+    body: "Nigdy wcześniej nie widziałem czegoś takiego. To niesamowite. Uwielbiam to.",
+    img: "https://avatar.vercel.sh/jack",
+  },
+    {
     name: "Jack",
-    username: "@jack",
+    username: "@test2",
+    body: "Nigdy wcześniej nie widziałem czegoś takiego. To niesamowite. Uwielbiam to.",
+    img: "https://avatar.vercel.sh/jack",
+  },
+    {
+    name: "Jack",
+    username: "@jack3",
     body: "Nigdy wcześniej nie widziałem czegoś takiego. To niesamowite. Uwielbiam to.",
     img: "https://avatar.vercel.sh/jack",
   },
@@ -66,30 +78,32 @@ const ReviewCard = ({
 
 export function AuthShowcase() {
   return (
-    <div className="relative w-full h-[109vh] flex-row items-center justify-center gap-4 overflow-hidden [perspective:300px] hidden lg:block lg:!mt-[-267px]">
+    <div className="relative w-full h-full items-center justify-center overflow-hidden [perspective:300px] hidden lg:flex">
+      {/* Marquee rows przesunięte do góry */}
       <div
-        className="flex flex-row items-center gap-4 h-full"
+        className="absolute top-[-315px] flex flex-row items-center gap-4"
         style={{
+          height: "100%",
           transform:
             "translateX(-100px) translateY(0px) translateZ(-100px) rotateX(20deg) rotateY(-10deg) rotateZ(20deg)",
         }}
       >
-        <Marquee pauseOnHover vertical className="h-full [--duration:20s]">
+        <Marquee pauseOnHover vertical className="h-[170vh] [--duration:20s]">
           {firstRow.map((review) => (
             <ReviewCard key={review.username} {...review} />
           ))}
         </Marquee>
-        <Marquee reverse pauseOnHover vertical className="h-full [--duration:20s]">
+        <Marquee reverse pauseOnHover vertical className="h-[130vh] [--duration:20s]">
           {secondRow.map((review) => (
             <ReviewCard key={review.username} {...review} />
           ))}
         </Marquee>
-        <Marquee reverse pauseOnHover vertical className="h-full [--duration:20s]">
+        <Marquee reverse pauseOnHover vertical className="h-[130vh] [--duration:20s]">
           {thirdRow.map((review) => (
             <ReviewCard key={review.username} {...review} />
           ))}
         </Marquee>
-        <Marquee pauseOnHover vertical className="h-full [--duration:20s]">
+        <Marquee pauseOnHover vertical className="h-[130vh] [--duration:20s]">
           {fourthRow.map((review) => (
             <ReviewCard key={review.username} {...review} />
           ))}
@@ -97,11 +111,11 @@ export function AuthShowcase() {
       </div>
 
       {/* Gradient fades */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-1/4 bg-gradient-to-b from-background"></div>
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/4 bg-gradient-to-t from-background"></div>
-      <div className="pointer-events-none absolute inset-y-0 left-0 w-1/4 bg-gradient-to-r from-background"></div>
-      <div className="pointer-events-none absolute inset-y-0 right-0 w-1/4 bg-gradient-to-l from-background"></div>
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-1/4 bg-gradient-to-b from-[#0C0A09]/90 to-transparent" />
+    <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/4 bg-gradient-to-t from-[#0C0A09]/90 to-transparent" />
+    <div className="pointer-events-none absolute inset-y-0 left-0 w-1/4 bg-gradient-to-r from-[#0C0A09]/90 to-transparent" />
+    <div className="pointer-events-none absolute inset-y-0 right-0 w-1/4 bg-gradient-to-l from-[#0C0A09]/90 to-transparent" />
+
     </div>
   );
 }
-

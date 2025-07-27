@@ -13,10 +13,10 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
 
   return (
-    <div className="bg-background">
-      <div className="flex flex-col lg:flex-row min-h-[50vh] max-h-[80vh]">
+    <div className="bg-background min-h-screen overflow-hidden">
+      <div className="flex flex-col lg:flex-row min-h-screen">
         {/* Left Side - Form */}
-        <div className="w-full !md:w-[60%] !lg:w-[60%] flex items-center justify-center p-6 lg:p-12">
+        <div className="flex-1 lg:basis-[70%] flex items-center justify-center p-6 lg:p-12">
           <div className="w-full max-w-md lg:max-w-xl xl:max-w-2xl space-y-8">
             {/* Header */}
             <div className="text-center space-y-2">
@@ -55,9 +55,7 @@ export default function LoginPage() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
                     <input id="remember" type="checkbox" className="rounded border-input" />
-                    <Label htmlFor="remember" className="text-sm">
-                      Zapamiętaj mnie
-                    </Label>
+                    <Label htmlFor="remember" className="text-sm">Zapamiętaj mnie</Label>
                   </div>
                   <Link href="/auth/forgot-password" className="text-sm text-primary hover:underline">
                     Zapomniałeś hasła?
@@ -91,8 +89,8 @@ export default function LoginPage() {
         </div>
 
         {/* Right Side - ShowCase */}
-        <div className="hidden lg:flex !w-auto !lg:w-[40%] relative bg-muted items-stretch ">
-          <div className="flex-1 h-full">
+        <div className="hidden lg:flex lg:basis-[30%] relative bg-muted items-stretch">
+          <div className="w-full h-full">
             <AuthShowcase />
           </div>
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/20 to-transparent rounded-l-2xl" />

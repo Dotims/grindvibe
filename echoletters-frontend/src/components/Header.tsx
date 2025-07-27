@@ -116,14 +116,14 @@ export default function Header() {
                 <span className="sr-only">Przełącz menu</span>
               </Button>
             </SheetTrigger>
-            <SheetContent side="right" className="w-[300px] sm:w-[400px] p-6">
+            <SheetContent side="right" className="w-[300px] sm:w-[400px] md:p-6">
               <SheetHeader>
                 <SheetTitle className="flex items-center space-x-2">
                   <Headphones className="h-5 w-5 text-primary" />
                   <span>EchoLetters</span>
                 </SheetTitle>
               </SheetHeader>
-              <nav className="flex flex-col space-y-4 mt-6">
+              <nav className="flex flex-col space-y-4 mt-6 p-3">
                 <Link href="/" className="text-lg font-medium hover:text-primary transition-colors">
                   Strona główna
                 </Link>
@@ -182,18 +182,18 @@ export default function Header() {
               Zaloguj się
             </Link>
           </Button>
-          <Button size="sm" asChild>
+          {/* <Button size="sm" asChild>
             <Link href="signup">
               <User className="h-4 w-4 mr-2" />
               Zarejestruj się
             </Link>
-          </Button>
+          </Button> */}
         </div>
 
         {/* Mobile Menu - Only shown below md */}
-        <div className="md:hidden flex items-center space-x-2 m p-6">
+        <div className="md:hidden flex items-center space-x-2 md:p-6">
           {/* Mobile Search */}
-          <div className="relative">
+          <div className="relative hidden md:block">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input type="search" placeholder="Szukaj..." className="w-32 pl-10 text-xs" />
           </div>
@@ -205,14 +205,14 @@ export default function Header() {
                 <span className="sr-only">Przełącz menu</span>
               </Button>
             </SheetTrigger>
-            <SheetContent side="right" className="w-[300px] sm:w-[400px] p-6">
+            <SheetContent side="right" className="w-[300px] sm:w-[400px] md:p-6">
               <SheetHeader>
                 <SheetTitle className="flex items-center space-x-2">
                   <Headphones className="h-5 w-5 text-primary" />
                   <span>EchoLetters</span>
                 </SheetTitle>
               </SheetHeader>
-              <nav className="flex flex-col space-y-4 mt-6">
+              <nav className="flex flex-col space-y-4 mt-6 p-4">
                 <Link href="/" className="text-lg font-medium hover:text-primary transition-colors">
                   Strona główna
                 </Link>
