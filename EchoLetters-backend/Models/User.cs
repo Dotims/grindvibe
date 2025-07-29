@@ -7,5 +7,6 @@ namespace EchoLetters_backend.Models
         public string Password { get; set; }
         public string FirstName { get; set; }
         public string Lastname { get; set; }
+        public string AvatarUrl { get; set; }
     }
 } 

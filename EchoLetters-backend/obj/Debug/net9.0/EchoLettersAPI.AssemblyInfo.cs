@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("EchoLettersAPI")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+bb251a20e473069f4c917aa71a02b2a07119d3f6")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+5b6dc0bb5c72da696e8ccbb47336e65af2f48d80")]
 [assembly: System.Reflection.AssemblyProductAttribute("EchoLettersAPI")]
 [assembly: System.Reflection.AssemblyTitleAttribute("EchoLettersAPI")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
