@@ -8,10 +8,66 @@ import { Eye, EyeOff } from "lucide-react"
 import Link from "next/link"
 import { useState } from "react"
 import AuthLayout from "../AuthLayout"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter
+} from "@/components/ui/dialog"
+import { useRouter } from "next/navigation"
+
 
 export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const router = useRouter()
+  const [modalOpen, setModalOpen] = useState(false)
+  const [modalMessage, setModalMessage] = useState("")
+
+
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+    avatarUrl: '/default_user.png',
+  })
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData(prev => ({
+      ...prev,
+      [e.target.id]: e.target.value
+    }))
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    try {
+      const res = await fetch('http://localhost:5257/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(formData)
+      })
+
+      if (res.ok) {
+          setModalMessage("Twoje konto zostało utworzone. Możesz się teraz zalogować.")
+          setModalOpen(true)
+      } else {
+          const error = await res.text()
+          setModalMessage("Błąd: " + error)
+          setModalOpen(true)
+      }
+    } catch (err) {
+      console.error(err)
+      alert("Wystąpił problem przy rejestracji")
+    }
+  }
 
   return (
     <AuthLayout>
@@ -23,22 +79,22 @@ export default function RegisterPage() {
           </p>
         </div>
 
-        <form className="space-y-6">
+        <form className="space-y-6" onSubmit={handleSubmit}>
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="firstName">Imię</Label>
-                <Input id="firstName" type="text" placeholder="Jan" className="h-12" required />
+                <Input id="firstName" value={formData.firstName} onChange={handleChange} type="text" placeholder="Jan" className="h-12" required />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="lastName">Nazwisko</Label>
-                <Input id="lastName" type="text" placeholder="Kowalski" className="h-12" required />
+                <Input id="lastName" value={formData.lastName} onChange={handleChange} type="text" placeholder="Kowalski" className="h-12" required />
               </div>
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="email">Adres e‑mail</Label>
-              <Input id="email" type="email" placeholder="jan@przyklad.com" className="h-12" required />
+              <Input id="email" value={formData.email} onChange={handleChange} type="email" placeholder="jan@przyklad.com" className="h-12" required />
             </div>
 
             <div className="space-y-2">
@@ -46,6 +102,8 @@ export default function RegisterPage() {
               <div className="relative">
                 <Input
                   id="password"
+                  value={formData.password} 
+                  onChange={handleChange}
                   type={showPassword ? "text" : "password"}
                   placeholder="Utwórz silne hasło"
                   className="h-12 pr-12"
@@ -54,7 +112,7 @@ export default function RegisterPage() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground !cursor-pointer"
                 >
                   {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
@@ -70,6 +128,8 @@ export default function RegisterPage() {
                 <Input
                   id="confirmPassword"
                   type={showConfirmPassword ? "text" : "password"}
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
                   placeholder="Potwierdź swoje hasło"
                   className="h-12 pr-12"
                   required
@@ -95,7 +155,7 @@ export default function RegisterPage() {
             </div>
           </div>
 
-          <Button type="submit" className="w-full h-12 text-white" style={{ backgroundColor: "#FF7D29" }}>
+          <Button type="submit" className="w-full h-12 text-white cursor-pointer" style={{ backgroundColor: "#FF7D29" }}>
             Utwórz konto
           </Button>
 
@@ -106,14 +166,36 @@ export default function RegisterPage() {
             </span>
           </div>
 
-          <Button variant="outline" className="w-full h-12 bg-transparent">
+          <Button variant="outline" className="w-full h-12 bg-transparent cursor-pointer">
             Kontynuuj przez Google
           </Button>
         </form>
 
+        <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Rejestracja</DialogTitle>
+              <DialogDescription>{modalMessage}</DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button
+                onClick={() => {
+                  setModalOpen(false)
+                  if (modalMessage.includes("utworzone")) {
+                    router.push("/auth/login")
+                  }
+                }}
+                className="w-full cursor-pointer"
+              >
+                {modalMessage.includes("utworzone") ? "Przejdź do logowania" : "Zamknij"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
         <p className="text-center text-sm text-muted-foreground">
           Masz już konto?{" "}
-          <Link href="/auth/login" className="text-primary hover:underline font-medium">
+          <Link href="/auth/login" className="text-primary hover:underline font-medium cursor-pointer">
             Zaloguj się
           </Link>
         </p>
