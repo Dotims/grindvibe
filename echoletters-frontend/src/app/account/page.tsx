@@ -9,12 +9,12 @@ import { User, Mail, Calendar, Settings, Lock, LogOut, Crown } from "lucide-reac
 export default function AccountPage() {
   // Placeholder user data
   const userData = {
-    firstName: "Jan",
-    lastName: "Kowalski",
-    email: "jan@example.com",
-    accountType: "Premium",
-    createdAt: "15 marca 2023",
-    lastLogin: "Dziś o 14:30",
+    firstName: "test",
+    lastName: "test",
+    email: "test@example.com",
+    accountType: "Premium - test",
+    createdAt: "(testDate) 15 marca 2023",
+    lastLogin: "(test) Dziś o 14:30",
   }
 
   return (
