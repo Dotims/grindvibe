@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using EchoLetters_backend.Data;
+using Microsoft.EntityFrameworkCore;
 using EchoLetters_backend.Models;
 
 namespace EchoLetters_backend.Controllers;
@@ -35,8 +36,7 @@ public class AuthController : ControllerBase
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] User login)
     {
-        var user = _context.Users.FirstOrDefault(u => u.Email == login.Email && u.Password == login.Password);
-
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == login.Email && u.Password == login.Password);
         if (user == null)
         {
             return Unauthorized("Niepoprawne dane logowania.");
