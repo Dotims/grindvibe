@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using EchoLetters_backend.Data;
+using Microsoft.EntityFrameworkCore;
 using EchoLetters_backend.Models;
 
 namespace EchoLetters_backend.Controllers;
@@ -10,10 +11,11 @@ namespace EchoLetters_backend.Controllers;
 public class AuthController : ControllerBase
 {
     private readonly AppDbContext _context;
-
-    public AuthController(AppDbContext context)
+    private readonly IConfiguration _config;
+    public AuthController(AppDbContext context, IConfiguration config)
     {
         _context = context;
+        _config = config;
     }
 
     // Endpoint: POST /api/auth/register
@@ -35,12 +37,14 @@ public class AuthController : ControllerBase
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] User login)
     {
-        var user = _context.Users.FirstOrDefault(u => u.Email == login.Email && u.Password == login.Password);
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == login.Email && u.Password == login.Password);
 
         if (user == null)
         {
             return Unauthorized("Niepoprawne dane logowania.");
         }
+
+        var token = JwtTokenGenerator.GenerateToken(user, _config);
 
         return Ok("Zalogowano pomyślnie.");
     }

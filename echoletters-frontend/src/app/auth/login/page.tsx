@@ -8,9 +8,44 @@ import { Eye, EyeOff } from "lucide-react"
 import Link from "next/link"
 import { useState } from "react"
 import AuthLayout from "../AuthLayout"
+import { useRouter } from "next/navigation";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter
+} from "@/components/ui/dialog"
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
+  const router = useRouter();
+  const [email, setEmail ] = useState("")
+  const [password, setPassword ] = useState("")
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalMessage, setModalMessage] = useState("");
+
+  const handleLogin = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    try {
+      const res = await fetch("http://localhost:5257/api/auth/login", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({ email, password})
+      })
+
+      if (res.ok) {
+        router.push("/account")
+      } else {
+        setModalMessage("Logowanie nie powiodło się. Spróbuj ponownie.");
+        setModalOpen(true)
+      } 
+    } catch (err) {
+       setModalMessage("Wystąpił błąd sieci. Spróbuj ponownie.");
+       setModalOpen(true) 
+      }
+  }
 
   return (
     <AuthLayout>
@@ -20,11 +55,19 @@ export default function LoginPage() {
           <p className="text-muted-foreground">Zaloguj się, aby kontynuować swoją audio‑podróż</p>
         </div>
 
-        <form className="space-y-6">
+        <form className="space-y-6" onSubmit={handleLogin}>
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Adres e‑mail</Label>
-              <Input id="email" type="email" placeholder="Wpisz swój e‑mail" className="h-12" required />
+              <Input 
+                id="email" 
+                type="email" 
+                placeholder="Wpisz swój e‑mail" 
+                className="h-12" 
+                required 
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
             </div>
 
             <div className="space-y-2">
@@ -36,6 +79,8 @@ export default function LoginPage() {
                   placeholder="Wpisz swoje hasło"
                   className="h-12 pr-12"
                   required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                 />
                 <button
                   type="button"
@@ -58,7 +103,7 @@ export default function LoginPage() {
             </div>
           </div>
 
-          <Button type="submit" className="w-full h-12 text-white" style={{ backgroundColor: "#FF7D29" }}>
+          <Button type="submit" className="w-full h-12 text-white cursor-pointer" style={{ backgroundColor: "#FF7D29" }}>
             Zaloguj się
           </Button>
 
@@ -69,7 +114,7 @@ export default function LoginPage() {
             </span>
           </div>
 
-          <Button variant="outline" className="w-full h-12 bg-transparent">
+          <Button onClick={handleLogin} variant="outline" className="w-full h-12 bg-transparent cursor-pointer">
             Kontynuuj przez Google
           </Button>
         </form>
@@ -81,6 +126,24 @@ export default function LoginPage() {
           </Link>
         </p>
       </div>
+
+      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Błąd logowania</DialogTitle>
+            <DialogDescription>{modalMessage}</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              onClick={() => setModalOpen(false)}
+              className="w-full cursor-pointer"
+            >
+              Spróbuj ponownie
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
     </AuthLayout>
   )
 }

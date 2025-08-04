@@ -8,7 +8,7 @@ const navigationLinks = [
   { title: "Strona główna", href: "/" },
   { title: "Biblioteka", href: "/library" },
   { title: "Kategorie", href: "/categories" },
-  { title: "O nas", href: "/about" },
+  { title: "O cvsdfsdfsdffnas", href: "/about" },
   { title: "Kontakt", href: "/contact" },
 ]
 
