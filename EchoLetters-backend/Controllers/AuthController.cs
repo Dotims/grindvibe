@@ -2,12 +2,12 @@ using Microsoft.AspNetCore.Mvc;
 using EchoLetters_backend.Data;
 using EchoLetters_backend.Models;
 
-namespace EchoLetters_backend.Controllers; 
+namespace EchoLetters_backend.Controllers;
 
 [ApiController]
 
 [Route("api/[controller]")]
-public class AuthController : ControllerBase 
+public class AuthController : ControllerBase
 {
     private readonly AppDbContext _context;
 
@@ -18,7 +18,7 @@ public class AuthController : ControllerBase
 
     // Endpoint: POST /api/auth/register
     [HttpPost("register")]
-    public async Task<IActionResult> Register([FromBody] User user) 
+    public async Task<IActionResult> Register([FromBody] User user)
     {
         var existingUser = _context.Users.FirstOrDefault(u => u.Email == user.Email);
         if (existingUser != null)
@@ -27,7 +27,7 @@ public class AuthController : ControllerBase
         }
 
         _context.Users.Add(user);
-        await _context.SaveChangesAsync(); 
+        await _context.SaveChangesAsync();
 
         return Ok("Rejestracja zakończona sukcesem.");
     }
@@ -43,5 +43,12 @@ public class AuthController : ControllerBase
         }
 
         return Ok("Zalogowano pomyślnie.");
+    }
+    
+    [HttpGet("users")]
+    public IActionResult GetUsers()
+    {
+        var users = _context.Users.ToList();
+        return Ok(users);
     }
 }
