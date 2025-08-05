@@ -1,5 +1,6 @@
 "use client"
 
+import { saveToken } from "@/lib/auth";
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -37,6 +38,8 @@ export default function LoginPage() {
 
       if (res.ok) {
         router.push("/account")
+        const data = await res.json();
+        saveToken(data.token)
       } else {
         setModalMessage("Logowanie nie powiodło się. Spróbuj ponownie.");
         setModalOpen(true)

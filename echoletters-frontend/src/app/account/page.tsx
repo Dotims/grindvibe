@@ -5,10 +5,21 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Separator } from "@/components/ui/separator"
 import { Badge } from "@/components/ui/badge"
 import { User, Mail, Calendar, Settings, Lock, LogOut, Crown } from "lucide-react"
+import { getCurrentUser } from "@/lib/api"; 
+import { useEffect, useState } from "react";
 
 export default function AccountPage() {
-  // Placeholder user data
-  const userData = {
+  const [user, userData] = useState<{ userId: string; email: string; } | null>(null);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const data = await getCurrentUser();
+      userData(data);
+    };
+    fetchUser();
+  }, []);
+
+  const userDataTest = {
     firstName: "test",
     lastName: "test",
     email: "test@example.com",
@@ -22,7 +33,13 @@ export default function AccountPage() {
       <div className="container max-w-4xl mx-auto px-4 py-8 space-y-8">
         {/* Welcome Header */}
         <div className="text-center space-y-4">
-          <h1 className="text-4xl font-bold text-foreground">Witaj ponownie, {userData.firstName}!</h1>
+          <h1 className="text-4xl font-bold text-foreground">
+            {user ? ( 
+              <p>Witaj ponownie, {user.email}</p>
+            ) : (
+              <p>Nie jesteś zalogowany.</p>
+            )}
+          </h1>
           <p className="text-lg text-muted-foreground">Zarządzaj swoim kontem i ustawieniami EchoLetters</p>
         </div>
 
@@ -45,7 +62,7 @@ export default function AccountPage() {
                       <span>Imię i nazwisko</span>
                     </div>
                     <p className="text-lg font-medium">
-                      {userData.firstName} {userData.lastName}
+                      {userDataTest.firstName} {userDataTest.lastName}
                     </p>
                   </div>
 
@@ -54,7 +71,7 @@ export default function AccountPage() {
                       <Mail className="h-4 w-4" />
                       <span>Adres e-mail</span>
                     </div>
-                    <p className="text-lg font-medium">{userData.email}</p>
+                    <p className="text-lg font-medium">{userDataTest.email}</p>
                   </div>
 
                   <div className="space-y-2">
@@ -64,7 +81,7 @@ export default function AccountPage() {
                     </div>
                     <div className="flex items-center space-x-2">
                       <Badge variant="secondary" className="text-white" style={{ backgroundColor: "#FF7D29" }}>
-                        {userData.accountType}
+                        {userDataTest.accountType}
                       </Badge>
                     </div>
                   </div>
@@ -74,7 +91,7 @@ export default function AccountPage() {
                       <Calendar className="h-4 w-4" />
                       <span>Data utworzenia</span>
                     </div>
-                    <p className="text-lg font-medium">{userData.createdAt}</p>
+                    <p className="text-lg font-medium">{userDataTest.createdAt}</p>
                   </div>
                 </div>
 
@@ -84,7 +101,7 @@ export default function AccountPage() {
                   <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                     <span>Ostatnie logowanie</span>
                   </div>
-                  <p className="text-sm font-medium">{userData.lastLogin}</p>
+                  <p className="text-sm font-medium">{userDataTest.lastLogin}</p>
                 </div>
               </CardContent>
             </Card>

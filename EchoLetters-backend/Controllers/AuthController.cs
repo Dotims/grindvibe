@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Mvc;
 using EchoLetters_backend.Data;
 using Microsoft.EntityFrameworkCore;
 using EchoLetters_backend.Models;
+using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 
 namespace EchoLetters_backend.Controllers;
 
@@ -37,6 +39,7 @@ public class AuthController : ControllerBase
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] User login)
     {
+        // szukanie uzytkownika po emailu
         var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == login.Email && u.Password == login.Password);
 
         if (user == null)
@@ -44,15 +47,30 @@ public class AuthController : ControllerBase
             return Unauthorized("Niepoprawne dane logowania.");
         }
 
+        // generowanie tokenu jwt
         var token = JwtTokenGenerator.GenerateToken(user, _config);
 
-        return Ok("Zalogowano pomyślnie.");
+        return Ok(new { token });
     }
-    
+
     [HttpGet("users")]
     public IActionResult GetUsers()
     {
         var users = _context.Users.ToList();
         return Ok(users);
+    }
+
+    [HttpGet("me")]
+    [Authorize]
+    public IActionResult Me()
+    {
+        var userId = User.FindFirstValue("id");
+        var email = User.FindFirstValue(ClaimTypes.Email);
+
+        return Ok(new
+        {
+            userId,
+            email
+        });
     }
 }
