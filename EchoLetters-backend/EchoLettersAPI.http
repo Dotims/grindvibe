@@ -1,6 +1,0 @@
-@EchoLettersAPI_HostAddress = http://localhost:5257
-
-GET {{EchoLettersAPI_HostAddress}}/weatherforecast/
-Accept: application/json
-
-###

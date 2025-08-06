@@ -1,7 +1,7 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 # dependencies
-/echoletters-frontend/node_modules/
+/grindvibe-frontend/node_modules/
 /.pnp
 .pnp.*
 .yarn/*
@@ -42,5 +42,7 @@ yarn-error.log*
 next-env.d.ts
 
 # Dotnet build folders
-/EchoLetters-backend/bin/
-/EchoLetters-backend/obj/
+/grindvibe-backend/bin/
+/grindvibe-backend/obj/
+
+
