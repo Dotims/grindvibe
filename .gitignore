@@ -2,6 +2,7 @@
 
 # dependencies
 /grindvibe-frontend/node_modules/
+/grindvibe-frontend-old/node_modules/
 /.pnp
 .pnp.*
 .yarn/*
