@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
-using EchoLetters_backend.Models; // potrzebne do widzenia klasy User
+using grindvibe_backend.Models; // potrzebne do widzenia klasy User
 
-namespace EchoLetters_backend.Data
+namespace grindvibe_backend.Data
 {
     public class AppDbContext : DbContext
     {

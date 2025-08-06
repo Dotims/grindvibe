@@ -2,7 +2,7 @@
 
 #nullable disable
 
-namespace EchoLettersAPI.Migrations
+namespace grindvibeAPI.Migrations
 {
     /// <inheritdoc />
     public partial class InitialCreate : Migration

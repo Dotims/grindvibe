@@ -31,7 +31,7 @@ export default function Header() {
         {/* Logo */}
         <Link href="/" className="flex items-center space-x-2 flex-shrink-0">
           <Headphones className="h-6 w-6 text-primary" />
-          <span className="text-xl font-bold text-foreground">EchoLetters</span>
+          <span className="text-xl font-bold text-foreground">grindvibe</span>
         </Link>
 
         {/* Desktop Navigation - Hidden on md, shown on lg+ */}
@@ -120,7 +120,7 @@ export default function Header() {
               <SheetHeader>
                 <SheetTitle className="flex items-center space-x-2">
                   <Headphones className="h-5 w-5 text-primary" />
-                  <span>EchoLetters</span>
+                  <span>grindvibe</span>
                 </SheetTitle>
               </SheetHeader>
               <nav className="flex flex-col space-y-4 mt-6 p-3">
@@ -209,7 +209,7 @@ export default function Header() {
               <SheetHeader>
                 <SheetTitle className="flex items-center space-x-2">
                   <Headphones className="h-5 w-5 text-primary" />
-                  <span>EchoLetters</span>
+                  <span>grindvibe</span>
                 </SheetTitle>
               </SheetHeader>
               <nav className="flex flex-col space-y-4 mt-6 p-4">

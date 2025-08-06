@@ -1,4 +1,4 @@
-namespace EchoLetters_backend.Models
+namespace grindvibe_backend.Models
 {
     public class User
     {

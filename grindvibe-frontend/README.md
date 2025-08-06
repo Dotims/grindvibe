@@ -36,5 +36,5 @@ The easiest way to deploy your Next.js app is to use the [Vercel Platform](https
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
 =======
-# echoLetters
+# grindvibe
 >>>>>>> 0573417b517bfc00feb5813a27f91d034e368556

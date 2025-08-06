@@ -6,7 +6,7 @@ import { ThemeProvider } from "@/components/ui/themeProvider";
 import Home from "@/app/page"
 
 export const metadata: Metadata = {
-  title: "EchoLetters – Biblioteka Audiobooków",
+  title: "grindvibe – Biblioteka Audiobooków",
   description: "Discover and listen to your favorite audiobooks for free in a beautiful bookish experience.",
 };
 

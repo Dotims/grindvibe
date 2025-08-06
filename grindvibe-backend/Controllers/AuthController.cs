@@ -1,11 +1,11 @@
 using Microsoft.AspNetCore.Mvc;
-using EchoLetters_backend.Data;
+using grindvibe_backend.Data;
 using Microsoft.EntityFrameworkCore;
-using EchoLetters_backend.Models;
+using grindvibe_backend.Models;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
 
-namespace EchoLetters_backend.Controllers;
+namespace grindvibe_backend.Controllers;
 
 [ApiController]
 

@@ -1,4 +1,4 @@
-using EchoLetters_backend.Data;
+using grindvibe_backend.Data;
 using Microsoft.AspNetCore.Authentication.JwtBearer; 
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens; 
@@ -8,7 +8,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // konfiguracja bazy SQLite
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlite("Data Source=echoletters.db"));
+    options.UseSqlite("Data Source=grindvibe.db"));
 
 // konfiguracja cors - (laczenie frontend + backend)
 builder.Services.AddCors(options =>

@@ -29,7 +29,7 @@ export default function Footer() {
           <div className="space-y-4 md:col-span-1 lg:col-span-1">
             <Link href="/" className="flex items-center space-x-2">
               <Headphones className="h-6 w-6 text-primary" />
-              <span className="text-xl font-bold text-foreground">EchoLetters</span>
+              <span className="text-xl font-bold text-foreground">grindvibe</span>
             </Link>
             <p className="text-sm text-muted-foreground max-w-xs">
               Historie, które do Ciebie mówią. Odkryj swój następny ulubiony audiobook w naszej starannie wyselekcjonowanej kolekcji.
@@ -81,7 +81,7 @@ export default function Footer() {
 
         {/* Bottom Bar - Copyright */}
         <div className="flex flex-col items-center justify-between space-y-4 md:flex-row md:space-y-0">
-          <p className="text-xs text-muted-foreground">© 2025 EchoLetters. Wszelkie prawa zastrzeżone.</p>
+          <p className="text-xs text-muted-foreground">© 2025 grindvibe. Wszelkie prawa zastrzeżone.</p>
           <div className="flex space-x-4 text-xs">
             <Link href="/privacy" className="text-muted-foreground hover:text-primary transition-colors">
               Polityka prywatności
