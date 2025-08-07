@@ -1,16 +1,16 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
+import path from 'path'          
 
-// https://vitejs.dev/config/
 export default defineConfig({
   plugins: [
     react(),
-    tailwindcss(),
+    tailwindcss(),             
   ],
   resolve: {
     alias: {
-      '@': '/src', // teraz możesz pisać: import { Button } from "@/components/ui/button"
+      '@': path.resolve(__dirname, 'src'), 
     },
   },
 })
