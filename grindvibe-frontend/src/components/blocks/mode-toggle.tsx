@@ -29,9 +29,7 @@ export default function ModeToggle() {
 
           <DropdownMenuContent
             align="end"
-            className="z-[80] min-w-[12rem] rounded-md border shadow-md
-                      !bg-white !text-black !border-gray-200
-                      dark:!bg-[#0B0B0F] dark:!text-white dark:!border-gray-800"
+            className="gv-menu min-w-[12rem]"
           >
           <DropdownMenuItem
             className="cursor-pointer focus:bg-black/5 dark:focus:bg-white/10"

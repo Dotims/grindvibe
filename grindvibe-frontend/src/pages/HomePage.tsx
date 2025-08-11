@@ -1,3 +1,9 @@
+import Hero from "../components/blocks/Hero";
+
 export default function HomePage() {
-  return <div className="text-9xl">TEST🏋️‍♂️</div>
+  return (
+    <main className="">
+      <Hero />
+    </main>
+  );
 }
