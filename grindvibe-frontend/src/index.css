@@ -1,7 +1,55 @@
 @import "tailwindcss";
+
+/* ====== GrindVibe palette ====== */
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
-  font-synthesis: none;
+  --gv-accent: #dc2626;   /* red-600 */
+
+  /* Light mode */
+  --gv-bg: #ffffff;
+  --gv-bg-soft: #f9fafb;       /* jasny szary tło sekcji */
+  --gv-text: #111827;          /* near-black text */
+  --gv-text-soft: #4b5563;     /* gray-600 */
+  --gv-border: #e5e7eb;        /* gray-200 */
+
+  /* Header glass bg (RGB token for opacity) */
+  --gv-header-bg: 255 255 255;
+
+  font-family: 'Inter', sans-serif;
+}
+
+.dark {
+  /* Dark mode */
+  --gv-bg: #0b0b0f;
+  --gv-bg-soft: #121218;
+  --gv-text: #f5f7fa;
+  --gv-text-soft: #9ca3af;
+  --gv-border: #1f2937;
+
+  /* Header glass bg in dark */
+  --gv-header-bg: 11 11 15;
+}
+
+/* Base theme application */
+@layer base {
+  html {
+    color-scheme: light dark;
+  }
+  body {
+    @apply min-h-screen antialiased transition-colors duration-300;
+    background-color: var(--gv-bg);
+    color: var(--gv-text);
+  }
+}
+
+/* Utility for accent text */
+.gv-accent {
+  color: var(--gv-accent);
+}
+
+/* Accent button */
+.gv-btn-accent {
+  background-color: var(--gv-accent);
+}
+.gv-btn-accent:hover {
+  filter: brightness(0.92);
 }

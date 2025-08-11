@@ -1,267 +1,166 @@
-"use client"
-
-import { Button } from "../ui/button"
-import { Input } from "../ui/input"
+import { Link, NavLink } from "react-router-dom";
+import { Button } from "../ui/button";
 import {
   NavigationMenu,
-  NavigationMenuContent,
   NavigationMenuItem,
   NavigationMenuLink,
   NavigationMenuList,
-  NavigationMenuTrigger,
-} from "../ui/navigation-menu"
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "../ui/sheet"
-import { Search, Menu, Headphones, User, LogIn } from "lucide-react"
-import ModeToggle from "../blocks/mode-toggle"
-import { Link } from "react-router-dom"
+} from "../ui/navigation-menu";
+import { Sheet, SheetContent, SheetTrigger, SheetClose } from "../ui/sheet";
+import { Separator } from "../ui/separator";
+import { Menu, Dumbbell, User } from "lucide-react";
+import ModeToggle from "../blocks/mode-toggle";
+import { cn } from "../../lib/utils";
 
-const categories = [
-  { title: "Fikcja", to: "/categories/fiction" },
-  { title: "Literatura faktu", to: "/categories/non-fiction" },
-  { title: "Kryminał i thriller", to: "/categories/mystery" },
-  { title: "Romans", to: "/categories/romance" },
-  { title: "Sci‑Fi i fantasy", to: "/categories/sci-fi" },
-  { title: "Biografia", to: "/categories/biography" },
-]
+const NAV = [
+  { to: "/", label: "Strona główna" },
+  { to: "/plan", label: "Plan treningowy" },
+  { to: "/cwiczenia", label: "Ćwiczenia" },
+  { to: "/profil", label: "Profil" },
+];
 
 export default function Header() {
   return (
-    <header className="sticky flex justify-center top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-16 items-center justify-between px-4">
-        {/* Logo */}
-        <Link to="/" className="flex items-center space-x-2 flex-shrink-0">
-          <Headphones className="h-6 w-6 text-primary" />
-          <span className="text-xl font-bold text-foreground">grindvibe</span>
+    <header
+      className={cn(
+        "sticky top-0 z-40 w-full border-b",
+        "border-[var(--gv-border)]",
+        "bg-[rgb(var(--gv-header-bg)/0.72)] backdrop-blur-md supports-[backdrop-filter]:bg-[rgb(var(--gv-header-bg)/0.58)]"
+      )}>
+      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
+        {/* Brand */}
+        <Link
+          to="/"
+          className="group inline-flex items-center gap-2 cursor-pointer">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--gv-accent)] text-white">
+            <Dumbbell size={18} />
+          </div>
+          <span className="text-lg font-bold tracking-tight">
+            Grind<span className="text-[var(--gv-accent)]">Vibe</span>
+          </span>
         </Link>
 
-        {/* Desktop Navigation - Hidden on md, shown on lg+ */}
-        <div className="hidden lg:flex items-center space-x-4 xl:space-x-6 flex-1 justify-center max-w-2xl">
+        {/* Desktop nav */}
+        <nav className="hidden md:block">
           <NavigationMenu>
             <NavigationMenuList>
-              <NavigationMenuItem>
-                <NavigationMenuLink asChild>
-                  <Link
-                    to="/"
-                    className="group inline-flex h-10 w-max items-center justify-center rounded-md bg-background px-3 xl:px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none disabled:pointer-events-none disabled:opacity-50"
-                  >
-                    Strona główna
-                  </Link>
-                </NavigationMenuLink>
-              </NavigationMenuItem>
-
-              <NavigationMenuItem>
-                <NavigationMenuLink asChild>
-                  <Link
-                    to="/library"
-                    className="group inline-flex h-10 w-max items-center justify-center rounded-md bg-background px-3 xl:px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none disabled:pointer-events-none disabled:opacity-50"
-                  >
-                    Biblioteka
-                  </Link>
-                </NavigationMenuLink>
-              </NavigationMenuItem>
-
-              <NavigationMenuItem>
-                <NavigationMenuTrigger className="px-3 xl:px-4">Kategorie</NavigationMenuTrigger>
-                <NavigationMenuContent>
-                  <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
-                    {categories.map((category) => (
-                      <li key={category.title}>
-                        <NavigationMenuLink asChild>
-                          <Link
-                            to={category.to}
-                            className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
-                          >
-                            <div className="text-sm font-medium leading-none">{category.title}</div>
-                          </Link>
-                        </NavigationMenuLink>
-                      </li>
-                    ))}
-                  </ul>
-                </NavigationMenuContent>
-              </NavigationMenuItem>
-
-              <NavigationMenuItem>
-                <NavigationMenuLink asChild>
-                  <Link
-                    to="/about"
-                    className="group inline-flex h-10 w-max items-center justify-center rounded-md bg-background px-3 xl:px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none disabled:pointer-events-none disabled:opacity-50"
-                  >
-                    O nas
-                  </Link>
-                </NavigationMenuLink>
-              </NavigationMenuItem>
+              {NAV.map((item) => (
+                <NavigationMenuItem key={item.to}>
+                  <NavLink
+                    to={item.to}
+                    className={({ isActive }) =>
+                      cn(
+                        // typografia mocniejsza
+                        "px-3 py-2 text-[15px] font-semibold tracking-wide cursor-pointer",
+                        "text-[var(--gv-text-soft)] hover:text-[var(--gv-text)]",
+                        "transition-colors",
+                        isActive && "text-[var(--gv-accent)]"
+                      )
+                    }>
+                    <NavigationMenuLink asChild>
+                      <span>{item.label}</span>
+                    </NavigationMenuLink>
+                  </NavLink>
+                </NavigationMenuItem>
+              ))}
             </NavigationMenuList>
           </NavigationMenu>
+        </nav>
 
-          {/* Search Bar - Responsive width */}
-          <div className="relative flex-shrink-0">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input type="search" placeholder="Szukaj audiobooków..." className="w-48 xl:w-64 pl-10" />
-          </div>
-        </div>
-
-        {/* Medium Screen Layout (md to lg) - Simplified */}
-        <div className="hidden md:flex lg:hidden items-center space-x-3 flex-1 justify-end max-w-md">
-          {/* Compact Search */}
-          <div className="relative flex-shrink-0">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input type="search" placeholder="Szukaj..." className="w-40 pl-10" />
-          </div>
-
-          {/* Navigation Menu Button */}
-          <Sheet>
-            <SheetTrigger asChild>
-              <Button variant="ghost" size="sm">
-                <Menu className="h-4 w-4" />
-                <span className="sr-only">Przełącz menu</span>
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="right" className="w-[300px] sm:w-[400px] md:p-6">
-              <SheetHeader>
-                <SheetTitle className="flex items-center space-x-2">
-                  <Headphones className="h-5 w-5 text-primary" />
-                  <span>grindvibe</span>
-                </SheetTitle>
-              </SheetHeader>
-              <nav className="flex flex-col space-y-4 mt-6 p-3">
-                <Link to="/" className="text-lg font-medium hover:text-primary transition-colors">
-                  Strona główna
-                </Link>
-                <Link to="/library" className="text-lg font-medium hover:text-primary transition-colors">
-                  Biblioteka
-                </Link>
-
-                <div className="space-y-2">
-                  <h3 className="text-lg font-medium">Kategorie</h3>
-                  <div className="pl-4 space-y-2">
-                    {categories.map((category) => (
-                      <Link
-                        key={category.title}
-                        to={category.to}
-                        className="block text-sm text-muted-foreground hover:text-primary transition-colors"
-                      >
-                        {category.title}
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-
-                <Link to="/about" className="text-lg font-medium hover:text-primary transition-colors">
-                  O nas
-                </Link>
-
-                <div className="pt-4 border-t space-y-2">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium">Motyw</span>
-                    <ModeToggle />
-                  </div>
-                  <Button variant="ghost" className="w-full justify-start" asChild>
-                    <Link to="/auth/login">
-                      <LogIn className="h-4 w-4 mr-2" />
-                      Zaloguj się
-                    </Link>
-                  </Button>
-                  <Button className="w-full justify-start" asChild>
-                    <Link to="signup">
-                      <User className="h-4 w-4 mr-2" />
-                      Zarejestruj się
-                    </Link>
-                  </Button>
-                </div>
-              </nav>
-            </SheetContent>
-          </Sheet>
-        </div>
-
-        {/* Desktop Auth Buttons - Only shown on lg+ */}
-        <div className="hidden lg:flex items-center space-x-1 xl:space-x-2 flex-shrink-0">
-          <ModeToggle />
-          <Button variant="ghost" size="sm" asChild>
-            <Link to="/auth/login">
-              <LogIn className="h-4 w-4 mr-2" />
-              Zaloguj się
+        {/* Right */}
+        <div className="hidden items-center gap-2 md:flex">
+          <Button
+            variant="ghost"
+            size="sm"
+            asChild
+            className="gap-2 cursor-pointer">
+            <Link to="/profil">
+              <User className="h-4 w-4" />
+              <span className="font-medium">Profil</span>
             </Link>
           </Button>
-          {/* <Button size="sm" asChild>
-            <Link to="signup">
-              <User className="h-4 w-4 mr-2" />
-              Zarejestruj się
-            </Link>
-          </Button> */}
+          <ModeToggle />
         </div>
 
-        {/* Mobile Menu - Only shown below md */}
-        <div className="md:hidden flex items-center space-x-2 md:p-6">
-          {/* Mobile Search */}
-          <div className="relative hidden md:block">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input type="search" placeholder="Szukaj..." className="w-32 pl-10 text-xs" />
-          </div>
-
+        {/* Mobile */}
+        <div className="flex items-center gap-2 md:hidden">
+          <ModeToggle />
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="sm">
+              <Button
+                variant="outline"
+                size="icon"
+                className="border-[var(--gv-border)] cursor-pointer">
                 <Menu className="h-5 w-5" />
-                <span className="sr-only">Przełącz menu</span>
+                <span className="sr-only">Otwórz menu</span>
               </Button>
             </SheetTrigger>
-            <SheetContent side="right" className="w-[300px] sm:w-[400px] md:p-6">
-              <SheetHeader>
-                <SheetTitle className="flex items-center space-x-2">
-                  <Headphones className="h-5 w-5 text-primary" />
-                  <span>grindvibe</span>
-                </SheetTitle>
-              </SheetHeader>
-              <nav className="flex flex-col space-y-4 mt-6 p-4">
-                <Link to="/" className="text-lg font-medium hover:text-primary transition-colors">
-                  Strona główna
-                </Link>
-                <Link to="/library" className="text-lg font-medium hover:text-primary transition-colors">
-                  Biblioteka
-                </Link>
 
-                <div className="space-y-2">
-                  <h3 className="text-lg font-medium">Kategorie</h3>
-                  <div className="pl-4 space-y-2">
-                    {categories.map((category) => (
-                      <Link
-                        key={category.title}
-                        to={category.to}
-                        className="block text-sm text-muted-foreground hover:text-primary transition-colors"
-                      >
-                        {category.title}
-                      </Link>
-                    ))}
+            <SheetContent
+              side="right"
+              className={cn(
+                "z-[70] w-[88vw] sm:w-96 p-0 bg-[#0B0B0F] text-white",
+                // animacje (wymagają tailwindcss-animate)
+                "data-[state=open]:animate-in data-[state=closed]:animate-out",
+                "data-[state=open]:slide-in-from-right data-[state=closed]:slide-out-to-right",
+                "duration-300",
+                // ukryj ewentualny domyślny X jeśli Twój ui/sheet go ma
+                "[&>button[aria-label='Close']]:hidden"
+              )}>
+              {/* Pasek tytułu + nasz X */}
+              <div className="relative flex h-16 items-center px-4">
+                <div className="flex items-center gap-2">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--gv-accent)]">
+                    <Dumbbell size={18} />
                   </div>
+                  <span className="text-lg font-bold tracking-tight">
+                    Grind<span className="text-[var(--gv-accent)]">Vibe</span>
+                  </span>
                 </div>
 
-                <Link to="/about" className="text-lg font-medium hover:text-primary transition-colors">
-                  O nas
-                </Link>
+                {/* X */}
+                <SheetClose asChild>
+                  <button
+                    aria-label="Zamknij menu"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 grid h-9 w-9 place-items-center rounded-md cursor-pointer text-white/80 hover:text-white hover:bg-white/5 outline-none focus-visible:ring-2 focus-visible:ring-white/30">
+                    <svg
+                      className="h-5 w-5"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round">
+                      <path d="M18 6 6 18" />
+                      <path d="m6 6 12 12" />
+                    </svg>
+                  </button>
+                </SheetClose>
+              </div>
 
-                <div className="pt-4 border-t space-y-2">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium">Motyw</span>
-                    <ModeToggle />
-                  </div>
-                  <Button variant="ghost" className="w-full justify-start" asChild>
-                    <Link to="/auth/login">
-                      <LogIn className="h-4 w-4 mr-2" />
-                      Zaloguj się
-                    </Link>
-                  </Button>
-                  <Button className="w-full justify-start" asChild>
-                    <Link to="auth/register">
-                      <User className="h-4 w-4 mr-2" />
-                      Zarejestruj się
-                    </Link>
-                  </Button>
-                </div>
+              {/* Linki */}
+              <nav className="mt-2 flex flex-col gap-1 px-2">
+                {NAV.map((item) => (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    className={({ isActive }) =>
+                      cn(
+                        "rounded-md px-3 py-2 text-[16px] font-semibold tracking-wide cursor-pointer",
+                        "text-white/90 hover:bg-white/5 hover:text-white",
+                        isActive && "text-[var(--gv-accent)]"
+                      )
+                    }>
+                    {item.label}
+                  </NavLink>
+                ))}
               </nav>
+
+              <Separator className="my-6 border-white/10" />
             </SheetContent>
           </Sheet>
         </div>
       </div>
     </header>
-  )
+  );
 }
