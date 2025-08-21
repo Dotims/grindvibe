@@ -7,7 +7,7 @@ import { motion } from "framer-motion";
 import { LogIn, Mail, Lock, Eye, EyeOff, HelpCircle } from "lucide-react";
 import { useState } from "react";
 
-export default function LoginPage() {
+export default function Login() {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -40,24 +40,30 @@ export default function LoginPage() {
       {/* Siatka tła (subtelna) */}
       <div
         aria-hidden
-        className="pointer-events-none fixed inset-0 -z-10 bg-[linear-gradient(to_right,rgba(0,0,0,0.06)_1px,transparent_1px),linear-gradient(to_bottom,rgba(0,0,0,0.06)_1px,transparent_1px)] bg-[size:36px_36px] opacity-[0.16] dark:bg-[linear-gradient(to_right,rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.06)_1px,transparent_1px)] dark:opacity-[0.12]"
+        className="pointer-events-none fixed inset-0 -z-30 bg-[linear-gradient(to_right,rgba(0,0,0,0.06)_1px,transparent_1px),linear-gradient(to_bottom,rgba(0,0,0,0.06)_1px,transparent_1px)] bg-[size:36px_36px] opacity-[0.16] dark:bg-[linear-gradient(to_right,rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.06)_1px,transparent_1px)] dark:opacity-[0.12]"
       />
 
-      {/* Orby akcentowe */}
+      {/* Orby akcentowe — bez fade-in na starcie (fix ghost shadow) */}
       <motion.div
         aria-hidden
-        className="pointer-events-none fixed inset-0 -z-10"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.8 }}
+        className="pointer-events-none fixed inset-0 -z-20"
+        initial={false}
       >
         <motion.div
-          className="absolute -top-24 -left-24 h-[28rem] w-[28rem] rounded-full bg-[var(--gv-accent)]/12 blur-3xl dark:bg-[var(--gv-accent)]/18"
+          className="absolute -top-24 -left-24 h-[28rem] w-[28rem]
+                     rounded-full bg-[var(--gv-accent)]/12 blur-3xl
+                     dark:bg-[var(--gv-accent)]/18
+                     transform-gpu will-change-transform will-change-opacity
+                     [backface-visibility:hidden]"
           animate={{ y: [0, 10, -6, 0] }}
           transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
         />
         <motion.div
-          className="absolute -bottom-24 -right-24 h-[28rem] w-[28rem] rounded-full bg-[var(--gv-accent)]/12 blur-3xl dark:bg-[var(--gv-accent)]/18"
+          className="absolute -bottom-24 -right-24 h-[28rem] w-[28rem]
+                     rounded-full bg-[var(--gv-accent)]/12 blur-3xl
+                     dark:bg-[var(--gv-accent)]/18
+                     transform-gpu will-change-transform will-change-opacity
+                     [backface-visibility:hidden]"
           animate={{ y: [0, -8, 6, 0] }}
           transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 1.1 }}
         />
@@ -66,9 +72,9 @@ export default function LoginPage() {
       {/* Centrum */}
       <div className="mx-auto flex min-h-[85vh] w-full max-w-6xl items-center justify-center px-6 py-12 md:py-16">
         <div className="w-full max-w-md">
-          {/* Gradient border + glass */}
-          <div className="rounded-2xl bg-gradient-to-b from-white/70 via-white/55 to-white/40 p-[1px] shadow-[0_8px_50px_-12px_rgba(0,0,0,0.35)] backdrop-blur-xl dark:from-zinc-800/55 dark:via-zinc-800/45 dark:to-zinc-900/40 dark:shadow-[0_8px_50px_-12px_rgba(0,0,0,0.7)]">
-            <div className="rounded-2xl border border-white/40 bg-white/65 backdrop-blur-xl dark:border-white/10 dark:bg-zinc-900/50">
+          {/* Gradient border + glass (izolacja warstwy + stabilne tło) */}
+          <div className="isolate rounded-2xl bg-gradient-to-b from-white/70 via-white/55 to-white/40 p-[1px] shadow-[0_8px_50px_-12px_rgba(0,0,0,0.35)] backdrop-blur-xl dark:from-zinc-800/55 dark:via-zinc-800/45 dark:to-zinc-900/40 dark:shadow-[0_8px_50px_-12px_rgba(0,0,0,0.7)]">
+            <div className="rounded-2xl border border-white/40 bg-white/70 supports-[backdrop-filter]:bg-white/60 backdrop-blur-xl dark:border-white/10 dark:bg-zinc-900/60">
               <Card className="rounded-2xl border-0 bg-transparent shadow-none">
                 <CardContent className="p-6 sm:p-8">
                   {/* Nagłówek */}
@@ -171,7 +177,7 @@ export default function LoginPage() {
                       </label>
 
                       <Link
-                        to="/auth/forgot"
+                        to="/auth/forgot-password"
                         className="
                           inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1
                           text-xs text-[var(--gv-accent)] transition
