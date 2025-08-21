@@ -32,7 +32,7 @@ export default function LoginPage() {
   return (
     <section
       className="
-        relative min-h-[100dvh] w-full overflow-hidden
+        relative min-h-[85vh] w-full overflow-hidden
         bg-[radial-gradient(1200px_420px_at_10%_-20%,var(--gv-accent)/10_0,transparent_60%),radial-gradient(1200px_420px_at_110%_120%,var(--gv-accent)/10_0,transparent_60%)]
         dark:bg-[radial-gradient(1200px_420px_at_10%_-20%,var(--gv-accent)/18_0,transparent_60%),radial-gradient(1200px_420px_at_110%_120%,var(--gv-accent)/18_0,transparent_60%)]
       "
@@ -64,7 +64,7 @@ export default function LoginPage() {
       </motion.div>
 
       {/* Centrum */}
-      <div className="mx-auto flex min-h-[100dvh] w-full max-w-6xl items-center justify-center px-6 py-12 md:py-16">
+      <div className="mx-auto flex min-h-[85vh] w-full max-w-6xl items-center justify-center px-6 py-12 md:py-16">
         <div className="w-full max-w-md">
           {/* Gradient border + glass */}
           <div className="rounded-2xl bg-gradient-to-b from-white/70 via-white/55 to-white/40 p-[1px] shadow-[0_8px_50px_-12px_rgba(0,0,0,0.35)] backdrop-blur-xl dark:from-zinc-800/55 dark:via-zinc-800/45 dark:to-zinc-900/40 dark:shadow-[0_8px_50px_-12px_rgba(0,0,0,0.7)]">
