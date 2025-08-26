@@ -1,47 +1,67 @@
-using grindvibe_backend.Data;
-using Microsoft.AspNetCore.Authentication.JwtBearer; 
-using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens; 
 using System.Text;
+using grindvibe_backend.Data;
+using grindvibe_backend.Models;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+
+using grindvibe_backend.Config;
+using grindvibe_backend.Helpers;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// konfiguracja bazy SQLite
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlite("Data Source=grindvibe.db"));
 
-// konfiguracja cors - (laczenie frontend + backend)
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseSqlite(builder.Configuration.GetConnectionString("Default") 
+        ?? "Data Source=grindvibe.db"));
+
+
+builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
+
+
+// bindowanie appsettings: "Jwt": {...} → JwtOptions
+builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection("Jwt"));
+
+// serwis do generowania tokenów
+builder.Services.AddSingleton<IJwtTokenGenerator, JwtTokenGenerator>();
+
+builder.Services.AddControllers();
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.WithOrigins("http://localhost:3000")
-        .AllowAnyHeader()
-        .AllowAnyMethod();
+        policy.WithOrigins("http://localhost:5173")
+              .AllowAnyMethod()
+              .AllowAnyHeader();
     });
 });
 
-var jwtKey = builder.Configuration["Jwt:Key"];
+var jwtSection = builder.Configuration.GetSection("Jwt");   
+var jwtKey = jwtSection["Key"] ?? throw new InvalidOperationException("Brakuje Jwt:Key w konfiguracji.");
+var jwtIssuer = jwtSection["Issuer"];                          
+var jwtAudience = jwtSection["Audience"];
+var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
+
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-        .AddJwtBearer(options =>
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
         {
-            options.TokenValidationParameters = new TokenValidationParameters
-            {
-                ValidateIssuer = false, // sprawdzanie kto wystawil token
-                ValidateAudience = false, // sprawdzanie dla kogo jest token
-                ValidateLifetime = true, // sprawdzanie czy token nie wygasl
-                ValidateIssuerSigningKey = true, // sprawdzamy podpis JWT
-                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey!)) // klucz do podpisywania tokena
-            };
-        });
+            ValidateIssuer = true,
+            ValidIssuer = jwtIssuer,
+            ValidateAudience = !string.IsNullOrEmpty(jwtAudience),
+            ValidAudience = jwtAudience,
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = signingKey,
+            ValidateLifetime = true,
+            ClockSkew = TimeSpan.Zero
+        };
+    });
 
-// builder.Services.AddAuthentication();
-
-builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-
-
 
 var app = builder.Build();
 
@@ -53,9 +73,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseCors("AllowFrontend");
-
 app.UseAuthentication();
 app.UseAuthorization();
-
-app.MapControllers(); 
+app.MapControllers();
 app.Run();
