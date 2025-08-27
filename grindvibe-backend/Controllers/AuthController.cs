@@ -8,7 +8,7 @@ using grindvibe_backend.Helpers;
 namespace grindvibe_backend.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("auth")]
 public class AuthController : ControllerBase
 {
     private readonly AppDbContext _db;
