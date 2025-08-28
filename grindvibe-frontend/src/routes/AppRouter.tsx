@@ -6,6 +6,7 @@ import Register from "../pages/auth/Register";
 import ForgotPasswordPage from "../pages/auth/ForgotPassword";
 // import ResetPasswordPage from "../pages/auth/ResetPasswordPage";
 // import AccountPage from "../pages/account/AccountPage";
+import RequireAuth from "../guards/RequireAuth";
 
 export default function AppRouter() {
   return (
@@ -23,6 +24,10 @@ export default function AppRouter() {
 
       {/* Account (na razie publiczne w przyszlosci zrobi sie guard do tego) */}
       {/* <Route path="/account" element={<AccountPage />} /> */}
+
+      <Route element={<RequireAuth />}>
+        <Route path="/account" element={<div>Account Page - Protected</div>} />
+      </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
