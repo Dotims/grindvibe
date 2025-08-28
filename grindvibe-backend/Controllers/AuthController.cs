@@ -3,26 +3,23 @@ using grindvibe_backend.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Text;
+using grindvibe_backend.Helpers;
 
 namespace grindvibe_backend.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("auth")]
 public class AuthController : ControllerBase
 {
     private readonly AppDbContext _db;
     private readonly IPasswordHasher<User> _hasher;
-    private readonly IConfiguration _cfg;
+    private readonly IJwtTokenGenerator _jwt;
 
-    public AuthController(AppDbContext db, IPasswordHasher<User> hasher, IConfiguration cfg)
+    public AuthController(AppDbContext db, IPasswordHasher<User> hasher, IJwtTokenGenerator jwt)
     {
         _db = db;
         _hasher = hasher;
-        _cfg = cfg;
+        _jwt = jwt;
     }
 
     public record RegisterDto(string? FirstName, string? LastName, string Email, string Password);
@@ -62,27 +59,10 @@ public class AuthController : ControllerBase
         if (res == PasswordVerificationResult.Failed)
             return Unauthorized("Nieprawidłowy e-mail lub hasło.");
 
-        var token = GenerateJwt(user);
+        var token = _jwt.Generate(user);
+        
         return Ok(new { token, user = new { user.Id, user.Email, user.FirstName, user.LastName } });
     }
 
-    private string GenerateJwt(User user)
-    {
-        var issuer = _cfg["Jwt:Issuer"]!;
-        var audience = _cfg["Jwt:Audience"]!;
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_cfg["Jwt:Key"]!));
-        var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-
-        var claims = new[]
-        {
-            new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
-            new Claim(JwtRegisteredClaimNames.Email, user.Email),
-            new Claim("name", $"{user.FirstName} {user.LastName}".Trim())
-        };
-
-        var token = new JwtSecurityToken(issuer, audience, claims,
-            expires: DateTime.UtcNow.AddDays(1), signingCredentials: creds);
-
-        return new JwtSecurityTokenHandler().WriteToken(token);
-    }
+    
 }
