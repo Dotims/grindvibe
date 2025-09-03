@@ -22,13 +22,13 @@ public class AuthController : ControllerBase
         _jwt = jwt;
     }
 
-    public record RegisterDto(string? FirstName, string? LastName, string Email, string Password);
+    public record RegisterDto(string? nickname, string Email, string Password);
     public record LoginDto(string Email, string Password);
 
     [HttpPost("register")]
-    public async Task<IActionResult> Register([FromBody] RegisterDto dto)
+    public async Task<IActionResult> Register([FromBody] RegisterDto request)
     {
-        var email = dto.Email.Trim().ToLower();
+        var email = request.Email.Trim().ToLower();
 
         if (await _db.Users.AnyAsync(u => u.Email == email))
             return Conflict("Użytkownik z takim e-mailem już istnieje.");
@@ -36,15 +36,20 @@ public class AuthController : ControllerBase
         var user = new User
         {
             Email = email,
-            FirstName = dto.FirstName,
-            LastName = dto.LastName
+            nickname = request.nickname,
         };
-        user.PasswordHash = _hasher.HashPassword(user, dto.Password);
+        user.PasswordHash = _hasher.HashPassword(user, request.Password);
 
         _db.Users.Add(user);
         await _db.SaveChangesAsync();
 
-        return Created("", new { user.Id, user.Email, user.FirstName, user.LastName });
+        var token = _jwt.Generate(user);
+
+        return Ok(new
+        {
+            token,
+            user = new { user.Id, user.Email, user.nickname }
+        });
     }
 
     [HttpPost("login")]
@@ -61,7 +66,7 @@ public class AuthController : ControllerBase
 
         var token = _jwt.Generate(user);
         
-        return Ok(new { token, user = new { user.Id, user.Email, user.FirstName, user.LastName } });
+        return Ok(new { token, user = new { user.Id, user.Email, user.nickname } });
     }
 
     

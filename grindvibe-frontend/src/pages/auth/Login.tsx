@@ -1,4 +1,4 @@
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Card, CardContent } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
@@ -6,22 +6,39 @@ import { Label } from "../../components/ui/label";
 import { motion } from "framer-motion";
 import { LogIn, Mail, Lock, Eye, EyeOff, HelpCircle } from "lucide-react";
 import { useState } from "react";
+import { useAuth } from "../../auth/useAuth";
 
 export default function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const state = location.state as { from?: {pathname: string} } | null;
+  const from =  state?.from?.pathname || "/account";
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+  const { login } = useAuth();
+
+  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setIsLoading(true);
     setError(null);
-    // TODO: POST /api/auth/login + obsługa błędów
-    setTimeout(() => {
-      setIsLoading(false);
-      navigate("/account");
-    }, 700);
+    
+    try {
+      await login({ email, password });
+      navigate(from, { replace: true });
+    } catch (err: unknown) {
+      let message = "Coś poszło nie tak. Spróbuj ponownie.";
+      if (err instanceof Error) message = err.message;
+      setError(message);
+    } finally {
+      setIsLoading(false);  
+    }
   }
 
   function onGoogleSignIn() {
@@ -120,9 +137,11 @@ export default function Login() {
                           id="email"
                           name="email"
                           type="email"
-                          placeholder="you@example.com"
+                          placeholder="kowalski@example.com"
                           required
                           autoComplete="email"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
                           className="
                             pl-10
                             focus-visible:ring-[var(--gv-accent)]
@@ -145,6 +164,8 @@ export default function Login() {
                           type={showPassword ? "text" : "password"}
                           required
                           autoComplete="current-password"
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
                           className="
                             pl-10 pr-10
                             focus-visible:ring-[var(--gv-accent)]
