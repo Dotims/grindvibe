@@ -38,7 +38,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   // login
   const login = async ({ email, password }: LoginInput) => {
-    const res = await fetch(`${API_BASE}/api/auth/login`, {
+    const res = await fetch(`${API_BASE}/auth/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),
@@ -51,7 +51,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   };
 
   const register = async (input: RegisterInput) => {
-    const res = await fetch(`${API_BASE}/api/auth/register`, {
+    const res = await fetch(`${API_BASE}/auth/register`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(input),
@@ -59,6 +59,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     if (!res.ok) throw new Error((await res.text()) || "Registration failed");
 
     const data = await res.json();
+    setToken(data.token);
     setToken(data.token);
     setUser(data.user ?? null);
   };

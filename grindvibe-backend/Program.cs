@@ -17,10 +17,11 @@ builder.Services.AddDbContext<AppDbContext>(options =>
         ?? "Data Source=grindvibe.db"));
 
 
+// serwis do hashowania hasel
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 
 
-// bindowanie appsettings: "Jwt": {...} → JwtOptions
+// bindowanie konfiguracji JWT
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection("Jwt"));
 
 // serwis do generowania tokenów
@@ -28,6 +29,7 @@ builder.Services.AddSingleton<IJwtTokenGenerator, JwtTokenGenerator>();
 
 builder.Services.AddControllers();
 
+// konfiguracja CORS
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>

@@ -15,10 +15,7 @@ namespace grindvibe_backend.Models
         public string PasswordHash { get; set; } = string.Empty;
 
         [MaxLength(50)]
-        public string? FirstName { get; set; }
-
-        [MaxLength(50)]
-        public string? LastName { get; set; }
+        public string? nickname { get; set; }
 
         [MaxLength(512)]
         public string? AvatarUrl { get; set; }

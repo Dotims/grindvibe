@@ -7,21 +7,28 @@ import { Label } from "../../components/ui/label";
 import { motion } from "framer-motion";
 import { Mail, Lock, Eye, EyeOff, User, ShieldCheck } from "lucide-react";
 import { useState } from "react";
+import { useAuth } from "../../auth/useAuth";
 
 export default function RegisterPage() {
   const navigate = useNavigate();
+
+  const { register } = useAuth();
+  
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [tos, setTos] = useState(false);
 
-  function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
 
     const form = e.currentTarget;
     const data = new FormData(form);
+
+    const name = String(data.get("name") ?? "").trim();
+    const email = String(data.get("email") ?? "").trim();
     const password = String(data.get("password") ?? "");
     const confirm = String(data.get("confirm") ?? "");
 
@@ -38,18 +45,23 @@ export default function RegisterPage() {
       return;
     }
 
-    setIsLoading(true);
-    // TODO: POST /api/auth/register (C#), po sukcesie zaloguj/zweryfikuj lub przekieruj
-    setTimeout(() => {
+    try {
+      await register({ email, password, nickname: name });
+
+      navigate("./account", { replace: true });
+    } catch (err: unknown) {
+      let message = "Wystąpił nieznany błąd. Spróbuj ponownie.";
+      if (err instanceof Error) message = err.message;
+      setError(message);
+    } finally {
       setIsLoading(false);
-      navigate("/account"); // albo /auth/login, zależnie od backendu
-    }, 700);
+    }
   }
 
   function onGoogleSignUp() {
-    // TODO: window.location.href = "/api/auth/google";
     console.log("Sign up with Google");
   }
+
 
   return (
     <section
@@ -129,7 +141,7 @@ export default function RegisterPage() {
                   <form onSubmit={onSubmit} className="grid gap-5">
                     {/* Imię (opcjonalnie: możesz zmienić label na „Nazwa użytkownika“) */}
                     <div className="grid gap-2">
-                      <Label htmlFor="name">Imię</Label>
+                      <Label htmlFor="name">Nazwa użytkownika</Label>
                       <div className="relative">
                         <User className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
                         <Input

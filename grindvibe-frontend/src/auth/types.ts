@@ -1,13 +1,12 @@
 export type AuthUser = {
-  id: number;             // zgodnie z backendowym int Id
+  id: number;             
   email: string;
-  firstName?: string;
-  lastName?: string;
+  nickname?: string;
   avatarUrl?: string;
 };
 
 export type LoginInput = { email: string; password: string };
-export type RegisterInput = { email: string; password: string; firstName?: string; lastName?: string };
+export type RegisterInput = { email: string; password: string; nickname?: string };
 
 export type AuthContextValue = {
   user: AuthUser | null;
