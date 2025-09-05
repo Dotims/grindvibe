@@ -141,7 +141,7 @@ export default function RegisterPage() {
                   <form onSubmit={onSubmit} className="grid gap-5">
                     {/* Imię (opcjonalnie: możesz zmienić label na „Nazwa użytkownika“) */}
                     <div className="grid gap-2">
-                      <Label htmlFor="name">Imię</Label>
+                      <Label htmlFor="name">Nazwa użytkownika</Label>
                       <div className="relative">
                         <User className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
                         <Input
