@@ -1,20 +1,20 @@
 export type AuthUser = {
-  id: number;             
+  id: number;
   email: string;
-  nickname?: string;
-  avatarUrl?: string;
+  nickname?: string | null;
+  avatarUrl?: string | null;
 };
 
 export type LoginInput = { email: string; password: string };
-export type RegisterInput = { email: string; password: string; nickname?: string };
+export type RegisterInput = { email: string; password: string; nickname?: string | null };
 
 export type AuthContextValue = {
   user: AuthUser | null;
   token: string | null;
   isAuthenticated: boolean;
   loading: boolean;
-  login: (input: LoginInput) => Promise<void>;
-  register: (input: RegisterInput) => Promise<void>;
+  login: (i: LoginInput) => Promise<void>;
+  register: (i: RegisterInput) => Promise<void>;
   logout: () => void;
-  setUser: (u: AuthUser | null) => void;
+  setUser: (u: AuthUser | null) => void;   // ← DODAJ
 };

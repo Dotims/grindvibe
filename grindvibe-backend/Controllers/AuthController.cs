@@ -48,7 +48,7 @@ public class AuthController : ControllerBase
         return Ok(new
         {
             token,
-            user = new { user.Id, user.Email, user.nickname }
+            user = new { user.Id, user.Email, user.nickname, user.AvatarUrl }
         });
     }
 
@@ -66,7 +66,7 @@ public class AuthController : ControllerBase
 
         var token = _jwt.Generate(user);
         
-        return Ok(new { token, user = new { user.Id, user.Email, user.nickname } });
+        return Ok(new { token, user = new { user.Id, user.Email, user.nickname, user.AvatarUrl } });
     }
 
     
