@@ -106,20 +106,29 @@ export default function Header() {
         {/* Right */}
         <div className="hidden items-center gap-2 md:flex">
           {isAuthenticated ? (
-            <Button
-              variant="ghost"
-              size="sm"
-              asChild
-              className="gap-2 cursor-pointer"
-            >
+            <Button variant="ghost" size="sm" asChild className="gap-2 cursor-pointer">
               <Link to="/account" className="flex items-center gap-2">
-                <div
-                  className="flex h-9 w-9 items-center justify-center rounded-[7px] text-sm font-bold text-white shadow-md"
-                  style={{
-                    background: getUserGradient(user),
-                  }}
-                >
-                  {initialsFrom(user)}
+                <div className="relative h-9 w-9 rounded-[8px] overflow-hidden shadow-md grid place-items-center">
+                  {user?.avatarUrl ? (
+                    <img
+                      key={user.avatarUrl}                 // wymusza odświeżenie przy zmianie URL
+                      src={user.avatarUrl}
+                      alt="avatar"
+                      className="h-full w-full object-cover"
+                      onError={(e) => {
+                        // gdyby URL padł – schowaj img; pokaże się fallback poniżej
+                        (e.currentTarget as HTMLImageElement).style.display = "none";
+                      }}
+                    />
+                  ) : null}
+                  {!user?.avatarUrl && (
+                    <span
+                      className="text-sm font-bold text-white w-full h-full grid place-items-center"
+                      style={{ background: getUserGradient(user) }}
+                    >
+                      {initialsFrom(user)}
+                    </span>
+                  )}
                 </div>
                 <span className="font-medium">{user?.nickname ?? "Profil"}</span>
               </Link>

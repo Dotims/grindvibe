@@ -8,14 +8,14 @@ import type { AuthUser } from "../../auth/types";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "";
 
-async function uploadAvatar(file: File, token: string) {
+async function uploadAvatar(file: File, token: string): Promise<{ user: AuthUser }> {
   const form = new FormData();
-  form.append("file", file); 
+  form.append("file", file);
 
-  const url = `${API_BASE.replace(/\/+$/, "")}/users/me/avatar`; // usuń ewentualny trailing slash
+  const url = `${API_BASE.replace(/\/+$/, "")}/users/me/avatar`;
   const res = await fetch(url, {
     method: "POST",
-    headers: { Authorization: `Bearer ${token}` }, // NIE ustawiaj Content-Type dla FormData
+    headers: { Authorization: `Bearer ${token}` },
     body: form,
   });
 
@@ -23,7 +23,9 @@ async function uploadAvatar(file: File, token: string) {
     const text = await res.text().catch(() => "");
     throw new Error(`HTTP ${res.status} – ${text || "Upload failed"}`);
   }
-  return res.json() as Promise<{ user: any }>;
+
+  const data = (await res.json()) as { user: AuthUser };
+  return data;
 }
 
 function getInitials(nickname?: string | null, email?: string | null) {
@@ -101,13 +103,10 @@ export default function Account() {
             <div className="rounded-2xl border border-white/40 bg-white/70 supports-[backdrop-filter]:bg-white/60 backdrop-blur-xl dark:border-white/10 dark:bg-zinc-900/60">
               <Card className="rounded-2xl border-0 bg-transparent shadow-none">
                 <CardContent className="p-6 sm:p-8">
-                  {/* Nagłówek */}
                   <div className="mb-6 flex items-center justify-between">
                     <div>
                       <h1 className="text-2xl font-bold tracking-tight">Twoje konto</h1>
-                      <p className="mt-1 text-sm text-muted-foreground">
-                        Dane profilu używane w GrindVibe.
-                      </p>
+                      <p className="mt-1 text-sm text-muted-foreground">Dane profilu używane w GrindVibe.</p>
                     </div>
 
                     <Button
@@ -120,7 +119,6 @@ export default function Account() {
                     </Button>
                   </div>
 
-                  {/* Sekcja profilu */}
                   <div className="grid gap-6 md:grid-cols-[220px_1fr]">
                     <div className="flex flex-col items-center gap-3">
                       <div className="relative aspect-square w-40 overflow-hidden rounded-[25px] shadow-md">
@@ -150,15 +148,16 @@ export default function Account() {
                           if (!f || !token) return;
                           try {
                             setIsUploading(true);
-                            if (!token) throw new Error("Brak tokenu – zaloguj się ponownie.");
                             const { user: updated } = await uploadAvatar(f, token);
                             setUser(updated);
                           } catch (err) {
-                            alert((err as Error).message); // teraz zobaczysz status + szczegóły z serwera
+                            alert((err as Error).message);
                             console.error(err);
                           } finally {
                             setIsUploading(false);
-                            fileRef.current && (fileRef.current.value = "");
+                            if (fileRef.current) {
+                              fileRef.current.value = "";
+                            }
                           }
                         }}
                       />
@@ -181,7 +180,6 @@ export default function Account() {
                       </Button>
                     </div>
 
-                    {/* Dane użytkownika */}
                     <div className="grid gap-4">
                       <div className="rounded-xl border border-white/40 bg-white/60 p-4 dark:border-white/10 dark:bg-zinc-800/60">
                         <div className="mb-1 flex items-center gap-2 text-sm font-medium">
@@ -200,8 +198,6 @@ export default function Account() {
                         </div>
                         <div className="text-base">{user.email}</div>
                       </div>
-
-                      {/* miejsce na kolejne pola */}
                     </div>
                   </div>
                 </CardContent>
