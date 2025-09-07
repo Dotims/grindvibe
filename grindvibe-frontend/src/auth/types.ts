@@ -16,4 +16,5 @@ export type AuthContextValue = {
   login: (input: LoginInput) => Promise<void>;
   register: (input: RegisterInput) => Promise<void>;
   logout: () => void;
+  setUser: (u: AuthUser | null) => void;
 };
