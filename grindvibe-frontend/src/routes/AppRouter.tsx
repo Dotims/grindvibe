@@ -8,6 +8,7 @@ import ForgotPasswordPage from "../pages/auth/ForgotPassword";
 // import AccountPage from "../pages/account/AccountPage";
 import RequireAuth from "../guards/RequireAuth";
 import Account  from "../pages/auth/Account";
+import Exercises from "../pages/exercises/index";
 
 export default function AppRouter() {
   return (
@@ -24,6 +25,7 @@ export default function AppRouter() {
           element={ <RequireAuth /> } >
             <Route path="/account" element={<Account />} />
         </Route>
+        <Route path="/exercises" element={ <Exercises />} />
 
         {/* <Route path="/auth/reset/:token" element={<ResetPasswordPage />} />   */}
 
