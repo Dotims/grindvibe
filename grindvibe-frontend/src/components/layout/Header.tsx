@@ -11,15 +11,51 @@ import { Separator } from "../ui/separator";
 import { Menu, Dumbbell, User } from "lucide-react";
 import ModeToggle from "../blocks/mode-toggle";
 import { cn } from "../../lib/utils";
+import { useAuth } from "../../auth/useAuth";
 
 const NAV = [
   { to: "/", label: "Strona główna" },
-  { to: "/plan", label: "Plan treningowy" },
-  { to: "/cwiczenia", label: "Ćwiczenia" },
-  { to: "/profil", label: "Profil" },
+  { to: "/training-plan", label: "Plany treningowe" },
+  { to: "/exercises", label: "Ćwiczenia" },
 ];
 
+function initialsFrom(
+  user?: { nickname?: string | null; email?: string | null } | null
+): string {
+  const base =
+    (user?.nickname && user.nickname.trim()) ||
+    (user?.email?.split("@")[0] ?? "");
+
+  if (!base) return "GV";
+  const parts = base.split(/[\s._-]+/).filter(Boolean);
+  const a = parts[0]?.[0]?.toUpperCase() ?? "";
+  const b = parts[1]?.[0]?.toUpperCase() ?? "";
+  return (a + b) || a || "GV";
+}
+
+function getUserGradient(
+  user?: { email?: string | null; nickname?: string | null } | null
+): string {
+  // Baza: email lub nickname → seed
+  const seed = user?.email || user?.nickname || "default";
+
+  // Prosty hash na liczbę
+  let hash = 0;
+  for (let i = 0; i < seed.length; i++) {
+    hash = seed.charCodeAt(i) + ((hash << 5) - hash);
+  }
+
+  // 2 kolory na podstawie hash
+  const hue1 = Math.abs(hash) % 360;
+  const hue2 = (hue1 + 40) % 360;
+
+  return `linear-gradient(135deg, hsl(${hue1}, 70%, 55%) 0%, hsl(${hue2}, 70%, 55%) 100%)`;
+}
+
+
 export default function Header() {
+  const { isAuthenticated, user } = useAuth();
+
   return (
     <header
       className={cn(
@@ -69,16 +105,44 @@ export default function Header() {
 
         {/* Right */}
         <div className="hidden items-center gap-2 md:flex">
-          <Button
-            variant="ghost"
-            size="sm"
-            asChild
-            className="gap-2 cursor-pointer">
-            <Link to="/profil">
-              <User className="h-4 w-4" />
-              <span className="font-medium">Profil</span>
-            </Link>
-          </Button>
+          {isAuthenticated ? (
+            <Button variant="ghost" size="sm" asChild className="gap-2 cursor-pointer">
+              <Link to="/account" className="flex items-center gap-2">
+                <div className="relative h-9 w-9 rounded-[8px] overflow-hidden shadow-md grid place-items-center">
+                  {user?.avatarUrl ? (
+                    <img
+                      key={user.avatarUrl}                 // wymusza odświeżenie przy zmianie URL
+                      src={user.avatarUrl}
+                      alt="avatar"
+                      className="h-full w-full object-cover"
+                      onError={(e) => {
+                        // gdyby URL padł – schowaj img; pokaże się fallback poniżej
+                        (e.currentTarget as HTMLImageElement).style.display = "none";
+                      }}
+                    />
+                  ) : null}
+                  {!user?.avatarUrl && (
+                    <span
+                      className="text-sm font-bold text-white w-full h-full grid place-items-center"
+                      style={{ background: getUserGradient(user) }}
+                    >
+                      {initialsFrom(user)}
+                    </span>
+                  )}
+                </div>
+                <span className="font-medium">{user?.nickname ?? "Profil"}</span>
+              </Link>
+            </Button>
+          ) : (
+            <Button variant="ghost" size="sm" asChild className="gap-2 cursor-pointer">
+              <Link to="/auth/login">
+                <User className="h-4 w-4" />
+                <span className="font-medium">Zaloguj się</span>
+              </Link>
+            </Button>
+          )}
+
+          
           <ModeToggle />
         </div>
 
