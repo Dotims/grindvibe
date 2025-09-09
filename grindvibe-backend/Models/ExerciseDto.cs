@@ -1,9 +1,9 @@
 namespace grindvibe_backend.Models
 {
-    public class ExercisesController
+    public class ExerciseDto
     {
-        public int Id { get; set; }
-        public string Name { get; set; } = string.Empty;
+        public string Id { get; set; } = default!;
+        public string Name { get; set; } = default!;
         public List<string> PrimaryMuscles { get; set; } = new();
         public List<string> SecondaryMuscles { get; set; } = new();
         public List<string> Equipment { get; set; } = new();
