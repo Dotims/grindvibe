@@ -5,10 +5,9 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-
-
 using grindvibe_backend.Config;
 using grindvibe_backend.Helpers;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,13 +20,11 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 // serwis do hashowania hasel
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 
-
 // bindowanie konfiguracji JWT
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection("Jwt"));
 
 // serwis do generowania tokenów
 builder.Services.AddSingleton<IJwtTokenGenerator, JwtTokenGenerator>();
-
 builder.Services.AddControllers();
 
 // konfiguracja CORS
@@ -35,12 +32,16 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.WithOrigins("http://localhost:5173")
+        policy.WithOrigins("http://localhost:5173",
+                "http://127.0.0.1:5173",
+                "https://localhost:5173",
+                "https://127.0.0.1:5173")
               .AllowAnyMethod()
               .AllowAnyHeader();
     });
 });
 
+// auth / jwt
 var jwtSection = builder.Configuration.GetSection("Jwt");   
 var jwtKey = jwtSection["Key"] ?? throw new InvalidOperationException("Brakuje Jwt:Key w konfiguracji.");
 var jwtIssuer = jwtSection["Issuer"];                          
@@ -76,8 +77,13 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
+app.UseRouting();
+
 app.UseCors("AllowFrontend");
+
 app.UseAuthentication();
 app.UseAuthorization();
+
 app.MapControllers();
+
 app.Run();
