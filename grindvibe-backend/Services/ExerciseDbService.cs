@@ -4,15 +4,6 @@ using grindvibe_backend.Models;
 
 namespace grindvibe_backend.Services
 {
-    public interface IExerciseDbService
-    {
-        Task<PagedResponse<ExerciseDto>> SearchAsync(
-            string? q, int page, int pageSize, CancellationToken ct = default);
-
-        Task<List<String>> GetAllBodyPartsAsync(CancellationToken ct = default);
-        Task<List<String>> GetAllEquipmentsAsync(CancellationToken ct = default);
-    }
-
     public class ExerciseDbService : IExerciseService
     {
         private readonly HttpClient _http;

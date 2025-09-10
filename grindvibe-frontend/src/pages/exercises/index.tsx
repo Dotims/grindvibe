@@ -1,108 +1,45 @@
-import { useMemo, useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Input } from "../../components/ui/input";
 // import { Button } from "../../components/ui/button";
 // import { cn } from "../../lib/utils";
 import { Search } from "lucide-react";
 import SimpleSelect from "../../components/blocks/SimpleSelect";
-import ExerciseCard from "../../components/blocks/ExerciseCard";
-
-type Exercise = {
-  id: string;
-  name: string;
-  primaryMuscles: string[];
-  secondaryMuscles?: string[];
-  equipment: string[];
-  difficulty?: "Początkujący" | "Średnio-zaawansowany" | "Zaawansowany";
-  imageUrl?: string | null;
-  videoUrl?: string | null;
-  description?: string;
-};
-
-const MOCK: Exercise[] = [
-  {
-    id: "1",
-    name: "Bench Press",
-    primaryMuscles: ["Chest"],
-    secondaryMuscles: ["Triceps", "Shoulders"],
-    equipment: ["Barbell", "Bench"],
-    difficulty: "Średnio-zaawansowany",
-    imageUrl: "https://wger.de/media/exercise-images/26/Bench-press-1.png",
-    videoUrl: "https://www.youtube.com/watch?v=rT7DgCr-3pg",
-    description: "Classic compound exercise targeting chest, triceps, and shoulders.",
-  },
-  {
-    id: "2",
-    name: "Pull Up",
-    primaryMuscles: ["Back"],
-    secondaryMuscles: ["Biceps"],
-    equipment: ["Pull-up Bar"],
-    difficulty: "Zaawansowany",
-    imageUrl: "https://wger.de/media/exercise-images/44/Pull-ups-2.png",
-    videoUrl: "https://www.youtube.com/watch?v=eGo4IYlbE5g",
-    description: "Bodyweight exercise for upper back and biceps strength.",
-  },
-  {
-    id: "3",
-    name: "Squat",
-    primaryMuscles: ["Quadriceps"],
-    secondaryMuscles: ["Glutes", "Hamstrings"],
-    equipment: ["Barbell"],
-    difficulty: "Początkujący",
-    imageUrl: "https://wger.de/media/exercise-images/111/Squats-2.png",
-    videoUrl: "https://www.youtube.com/watch?v=YaXPRqUwItQ",
-    description: "Fundamental lower-body movement for strength and hypertrophy.",
-  },
-  {
-    id: "4",
-    name: "Plank",
-    primaryMuscles: ["Abs"],
-    secondaryMuscles: ["Lower Back"],
-    equipment: ["Bodyweight"],
-    difficulty: "Początkujący",
-    imageUrl: "https://wger.de/media/exercise-images/130/Plank-1.png",
-    description: "Isometric core exercise that builds endurance in abs and back.",
-  },
-];
+import { getExerciseLists } from "../../api/exercises";
 
 export default function ExercisesPage() {
+  // filtry ui
   const [q, setQ] = useState("");
   const [muscle, setMuscle] = useState("");
   const [equipment, setEquipment] = useState("");
 
+  // opcje do dropdownow
   const [muscleOptions, setMuscleOptions] = useState<string[]>([]);
   const [equipmentOptions, setEquipmentOptions] = useState<string[]>([]);
 
-  useEffect(() => {
-    const fetchLists = async () => {
-      try {
-        const res = await fetch("https://localhost:7093/exercises/lists");
-        if (!res.ok) throw new Error("Failed to fetch lists");
-        const data = await res.json();
-        setMuscleOptions(data.muscles);
-        setEquipmentOptions(data.equipment);
-      } catch (err) {
-        console.error("Error fetching lists:", err);
-      }
-    };
-    fetchLists();
-  }, []);
 
-  const filtered = useMemo(() => {
-    const term = q.trim().toLowerCase();
-    return MOCK.filter((e) => {
-      const byQ = !term || e.name.toLowerCase().includes(term);
-      const inPrimary = e.primaryMuscles.map((m) => m.toLowerCase());
-      const inSecondary = (e.secondaryMuscles ?? []).map((m) => m.toLowerCase());
-      const byMuscle =
-        !muscle ||
-        inPrimary.includes(muscle.toLowerCase()) ||
-        inSecondary.includes(muscle.toLowerCase());
-      const byEquip =
-        !equipment ||
-        e.equipment.map((x) => x.toLowerCase()).includes(equipment.toLowerCase());
-      return byQ && byMuscle && byEquip;
-    });
-  }, [q, muscle, equipment]);
+  // stany ux dla fetchowania list
+  const [listsLoading, setListsLoading] = useState(true);
+  const [listsError, setListsError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const data = await getExerciseLists();
+        if (!alive) return;
+
+        setMuscleOptions(data.muscles ?? []);
+        setEquipmentOptions(data.equipment ?? []);
+        setListsError(null);
+      } catch (err) {
+        if (!alive) return;
+        setListsError((err as Error)?.message ?? "Failed to load filters");
+      } finally {
+        if (alive) setListsLoading(false);
+      }
+    })();
+    return () => { alive = false };
+  }, []);
 
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-10">
@@ -110,10 +47,11 @@ export default function ExercisesPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Exercises</h1>
           <p className="text-sm text-muted-foreground">
-            Przeglądaj ćwiczenia, filtruj po mięśniach i sprzęcie.
+            Przeglądaj ćwiczenia z ExerciseDB. Na razie ładujemy listy filtrów; wyszukiwanie podepniemy w kolejnym kroku.
           </p>
         </div>
 
+        {/* filtry */}
         <div className="grid w-full grid-cols-1 gap-2 md:w-auto md:grid-cols-[minmax(260px,360px)_180px_180px]">
           <div className="relative">
             <Search className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 opacity-70" />
@@ -129,7 +67,7 @@ export default function ExercisesPage() {
             value={muscle}
             onChange={setMuscle}
             options={muscleOptions}
-            placeholder="Muscle"
+            placeholder="Body part"
           />
 
           <SimpleSelect
@@ -141,17 +79,16 @@ export default function ExercisesPage() {
         </div>
       </div>
 
-      {filtered.length === 0 ? (
-        <div className="grid place-items-center rounded-xl border border-dashed p-10 text-center text-sm text-muted-foreground">
-          Brak wyników dla wybranych filtrów.
-        </div>
-      ) : (
-        <section className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {filtered.map((ex) => (
-            <ExerciseCard key={ex.id} ex={ex} />
-          ))}
-        </section>
+      {listsLoading && (
+        <div className="mb-4 text-sm text-muted-foreground">Loading filters…</div>
       )}
+      {listsError && (
+        <div className="mb-4 text-sm text-red-600">Failed to load filters: {listsError}</div>
+      )}
+
+      <div className="grid place-items-center rounded-xl border border-dashed p-10 text-center text-sm text-muted-foreground">
+        test
+      </div>
     </main>
   );
 }
