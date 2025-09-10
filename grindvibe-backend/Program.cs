@@ -11,7 +11,6 @@ using grindvibe_backend.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("Default") 
         ?? "Data Source=grindvibe.db"));
@@ -41,7 +40,6 @@ builder.Services.AddCors(options =>
     });
 });
 
-// auth / jwt
 var jwtSection = builder.Configuration.GetSection("Jwt");   
 var jwtKey = jwtSection["Key"] ?? throw new InvalidOperationException("Brakuje Jwt:Key w konfiguracji.");
 var jwtIssuer = jwtSection["Issuer"];                          

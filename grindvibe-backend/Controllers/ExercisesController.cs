@@ -18,10 +18,28 @@ public class ExercisesController : ControllerBase
     [HttpGet("lists")]
     public async Task<IActionResult> GetList(CancellationToken ct)
     {
-        var muscles = await _exerciseService.GetAllBodypartsAsync(ct);
-        var equipments = await _exerciseService.GetAllEquipmentsAsync(ct);
-
-        return Ok(new { muscles, equipments });
+        try
+        {
+            var muscles    = await _exerciseService.GetAllBodypartsAsync(ct);
+            var equipments = await _exerciseService.GetAllEquipmentsAsync(ct);
+            return Ok(new { muscles, equipments });
+        }
+        catch (HttpRequestException ex)
+        {
+            return StatusCode(StatusCodes.Status502BadGateway, new
+            {
+                message = "ExerciseDB upstream error",
+                detail  = ex.Message
+            });
+        }
+        catch (System.Text.Json.JsonException ex)
+        {
+            return StatusCode(StatusCodes.Status502BadGateway, new
+            {
+                message = "Invalid JSON from ExerciseDB",
+                detail  = ex.Message
+            });
+        }
     }
 
     [HttpGet]
