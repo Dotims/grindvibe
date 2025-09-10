@@ -67,9 +67,9 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-builder.Services.AddHttpClient<IExerciseService, ExerciseDbService>(client =>
+builder.Services.AddHttpClient<IExerciseService, ExerciseDbService>(c =>
 {
-    client.BaseAddress = new Uri("https://www.exercisedb.dev/api/v1");
+    c.BaseAddress = new Uri("https://www.exercisedb.dev/api/v1/");
 });
 
 var app = builder.Build();

@@ -47,7 +47,7 @@ export default function ExercisesPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Exercises</h1>
           <p className="text-sm text-muted-foreground">
-            Przeglądaj ćwiczenia z ExerciseDB. Na razie ładujemy listy filtrów; wyszukiwanie podepniemy w kolejnym kroku.
+            Odkryj ćwiczenia dopasowane do Twoich celów i znajdź inspirację na każdy trening.
           </p>
         </div>
 

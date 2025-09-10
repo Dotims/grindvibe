@@ -11,8 +11,6 @@ namespace grindvibe_backend.Services
         public ExerciseDbService(HttpClient http)
         {
             _http = http;
-            // baza dla wszystkich endpointow
-            _http.BaseAddress = new Uri("https://www.exercisedb.dev/api/v1");
         }
 
         public async Task<PagedResponse<ExerciseDto>> SearchAsync(string? q, int page, int pageSize, CancellationToken ct = default)
@@ -26,7 +24,7 @@ namespace grindvibe_backend.Services
             qs["limit"] = limit.ToString();
             qs["threshold"] = "0.3";
 
-            var url = $"/exercises/search?{qs}";
+            var url = $"exercises/search?{qs}";
 
             var response = await _http.GetFromJsonAsync<ExerciseDbResponse>(url, ct);
             if (response == null) return new PagedResponse<ExerciseDto>();
@@ -53,13 +51,13 @@ namespace grindvibe_backend.Services
 
         public async Task<List<string>> GetAllBodypartsAsync(CancellationToken ct = default)
         {
-            var data = await _http.GetFromJsonAsync<List<string>>("/bodyparts", ct);
+            var data = await _http.GetFromJsonAsync<List<string>>("bodyparts", ct);
             return data ?? new();
         }
 
         public async Task<List<string>> GetAllEquipmentsAsync(CancellationToken ct = default)
         {
-            var data = await _http.GetFromJsonAsync<List<string>>("/equipments", ct);
+            var data = await _http.GetFromJsonAsync<List<string>>("equipments", ct);
             return data ?? new();
         }
     }
