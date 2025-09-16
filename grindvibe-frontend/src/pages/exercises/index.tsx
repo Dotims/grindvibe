@@ -29,7 +29,7 @@ export default function ExercisesPage() {
         if (!alive) return;
 
         setMuscleOptions(data.muscles ?? []);
-        setEquipmentOptions(data.equipment ?? []);
+        setEquipmentOptions(data.equipments ?? []);
         setListsError(null);
       } catch (err) {
         if (!alive) return;

@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Web;
 using grindvibe_backend.Models;
+using System.Net;             
 
 namespace grindvibe_backend.Services
 {
@@ -75,6 +76,63 @@ namespace grindvibe_backend.Services
 
             resp.EnsureSuccessStatusCode();
             return body;
+        }
+
+        public async Task<ExerciseDto?> GetByIdAsync(string id, CancellationToken ct = default)
+        {
+            var url = $"exercises/{id}"; 
+            using var resp = await _http.GetAsync(url, ct);
+
+            if (resp.StatusCode == HttpStatusCode.NotFound)
+                return null;
+
+            resp.EnsureSuccessStatusCode();
+
+            var json = await resp.Content.ReadAsStringAsync(ct);
+            using var doc = JsonDocument.Parse(json);
+
+            if (!doc.RootElement.TryGetProperty("data", out var data))
+                return null;
+
+            var dto = new ExerciseDto
+            {
+                Id   = data.GetProperty("exerciseId").GetString() ?? id,
+                Name = data.GetProperty("name").GetString() ?? "",
+
+                ImageUrl = data.TryGetProperty("gifUrl", out var gif)
+                    ? gif.GetString()
+                    : null,
+
+                PrimaryMuscles = data.TryGetProperty("targetMuscles", out var tm)
+                    ? tm.EnumerateArray()
+                        .Select(x => x.GetString() ?? "")
+                        .Where(x => !string.IsNullOrWhiteSpace(x))
+                        .ToList()
+                    : new List<string>(),
+
+                SecondaryMuscles = data.TryGetProperty("secondaryMuscles", out var sm)
+                    ? sm.EnumerateArray()
+                        .Select(x => x.GetString() ?? "")
+                        .Where(x => !string.IsNullOrWhiteSpace(x))
+                        .ToList()
+                    : new List<string>(),
+
+                Equipment = data.TryGetProperty("equipments", out var eq)
+                    ? eq.EnumerateArray()
+                        .Select(x => x.GetString() ?? "")
+                        .Where(x => !string.IsNullOrWhiteSpace(x))
+                        .ToList()
+                    : new List<string>(),
+
+                Description = data.TryGetProperty("instructions", out var instr)
+                    ? string.Join(" ",
+                        instr.EnumerateArray()
+                            .Select(x => x.GetString() ?? "")
+                            .Where(x => !string.IsNullOrWhiteSpace(x)))
+                    : null
+            };
+
+            return dto;
         }
 
         // pasrsowanie listy nazw z roznych możliwych kształtów JSON-a

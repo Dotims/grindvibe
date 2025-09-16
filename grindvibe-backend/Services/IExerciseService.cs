@@ -4,11 +4,15 @@ namespace grindvibe_backend.Services
 {
     public interface IExerciseService
     {
-        // metody ktory musi miec serwis od cwiczen 
+        // wyszukiwanie cwiczen
         Task<PagedResponse<ExerciseDto>> SearchAsync(string? q, int page, int pageSize, CancellationToken ct = default);
 
-        // pobieranie partie ciala + sprzetu
+        // listy do filtrow
         Task<List<string>> GetAllBodypartsAsync(CancellationToken ct = default);
         Task<List<string>> GetAllEquipmentsAsync(CancellationToken ct = default);
+
+        // szczegoly cwiczenia
+        Task<ExerciseDto?> GetByIdAsync(string id, CancellationToken ct = default);
+
     }
 }

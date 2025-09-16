@@ -20,7 +20,7 @@ public class ExercisesController : ControllerBase
     {
         try
         {
-            var muscles    = await _exerciseService.GetAllBodypartsAsync(ct);
+            var muscles = await _exerciseService.GetAllBodypartsAsync(ct);
             var equipments = await _exerciseService.GetAllEquipmentsAsync(ct);
             return Ok(new { muscles, equipments });
         }
@@ -29,7 +29,7 @@ public class ExercisesController : ControllerBase
             return StatusCode(StatusCodes.Status502BadGateway, new
             {
                 message = "ExerciseDB upstream error",
-                detail  = ex.Message
+                detail = ex.Message
             });
         }
         catch (System.Text.Json.JsonException ex)
@@ -37,7 +37,7 @@ public class ExercisesController : ControllerBase
             return StatusCode(StatusCodes.Status502BadGateway, new
             {
                 message = "Invalid JSON from ExerciseDB",
-                detail  = ex.Message
+                detail = ex.Message
             });
         }
     }
@@ -52,5 +52,15 @@ public class ExercisesController : ControllerBase
     {
         var result = await _exerciseService.SearchAsync(q, page, pageSize, ct);
         return Ok(result);
+    }
+    
+    [HttpGet("{id}")]
+    [ProducesResponseType(typeof(ExerciseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetById(string id, CancellationToken ct)
+    {
+        var ex = await _exerciseService.GetByIdAsync(id, ct);
+        if (ex is null) return NotFound();
+        return Ok(ex);
     }
 }
