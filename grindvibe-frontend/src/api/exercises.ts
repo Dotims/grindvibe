@@ -27,10 +27,17 @@ export type PagedResult<T> = {
 export function searchExercises(
     params?: { q?: string; page?: number; pageSize?: number; }
 ): Promise<PagedResult<ExerciseDto>> {
-    const q = params?.q ?? "";
+    const q = (params?.q ?? "").trim();
     const page = params?.page ?? 1;
-    const pageSize = params?.pageSize ?? 20;
-    const qs = new URLSearchParams({ q, page: page.toString(), pageSize: pageSize.toString() });
+    const pageSize = params?.pageSize ?? 10;
+
+    const qs = new URLSearchParams({ 
+        page: String(page),
+        pageSize: String(pageSize)
+    });
+
+    if (q) qs.set("q", q);
+
     return api<PagedResult<ExerciseDto>>(`/exercises?${qs.toString()}`);
 }
 

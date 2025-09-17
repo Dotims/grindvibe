@@ -22,7 +22,7 @@ namespace grindvibe_backend.Services
             var limit  = Math.Clamp(pageSize, 1, 25);
 
             var qs = HttpUtility.ParseQueryString(string.Empty);
-            qs["q"]         = string.IsNullOrWhiteSpace(q) ? "" : q;
+            qs["q"]         = string.IsNullOrWhiteSpace(q) ? "all" : q;
             qs["offset"]    = offset.ToString();
             qs["limit"]     = limit.ToString();
             qs["threshold"] = "0.3";
@@ -30,6 +30,7 @@ namespace grindvibe_backend.Services
             var url = $"exercises/search?{qs}"; 
 
             var response = await _http.GetFromJsonAsync<ExerciseDbResponse>(url, ct);
+
             if (response is null)
                 return new PagedResponse<ExerciseDto>();
 

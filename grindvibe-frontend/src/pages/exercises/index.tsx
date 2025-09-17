@@ -57,6 +57,7 @@ export default function ExercisesPage() {
         setError(null);
         try {
           const res = await searchExercises({ q, page, pageSize });
+          console.log("[/exercises] items:", res.items.length, res.items[0]);
           if (!alive) return;
           setItems(res.items);
           setTotal(res.total);
@@ -77,6 +78,7 @@ export default function ExercisesPage() {
   const canPrev = page > 1;
   const canNext = items.length === pageSize && page * pageSize < total;
 
+  console.log("STATE:", { loading, error, count: items.length, page, total });
 
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-10">

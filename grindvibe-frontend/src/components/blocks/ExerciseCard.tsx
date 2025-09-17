@@ -1,6 +1,5 @@
 import { Card, CardContent } from "../ui/card";
 import { Button } from "../ui/button";
-import { cn } from "../../lib/utils";
 import { type ExerciseDto } from "../../api/exercises";
 import { Link } from "react-router-dom";
 
@@ -13,6 +12,10 @@ function thumbGradient(seed: string) {
 }
 
 export default function ExerciseCard({ exercise }: { exercise: ExerciseDto }) {
+  const primary: string[] = exercise.primaryMuscle ?? [];
+  const secondary: string[] = exercise.secondaryMuscle ?? [];
+  const equipment: string[] = exercise.equipment ?? [];
+
   return (
     <Card className="overflow-hidden rounded-2xl border-0 shadow-[0_8px_30px_-12px_rgba(0,0,0,0.35)] dark:shadow-[0_8px_30px_-12px_rgba(0,0,0,0.7)]">
       <CardContent className="p-0">
@@ -23,8 +26,7 @@ export default function ExerciseCard({ exercise }: { exercise: ExerciseDto }) {
               alt={exercise.name}
               className="h-full w-full object-cover"
               loading="lazy"
-              onError={(e) => {
-                (e.currentTarget as HTMLImageElement).style.display = "none";
+              onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none";
               }}
             />
           ) : (
@@ -43,44 +45,24 @@ export default function ExerciseCard({ exercise }: { exercise: ExerciseDto }) {
         </div>
 
         <div className="p-4">
-          <div className="mb-1 flex items-center justify-between gap-2">
-            <h3 className="line-clamp-2 text-base font-semibold">{exercise.name}</h3>
-            {/* Jeśli kiedyś dodasz difficulty do DTO, ta etykieta zadziała od razu */}
-            {/* @ts-expect-error optional future field */}
-            {exercise.difficulty && (
-              <span
-                className={cn(
-                  "rounded-md px-2 py-0.5 text-[11px] font-semibold",
-                  // @ts-expect-error optional future field
-                  exercise.difficulty === "Początkujący" && "bg-emerald-500/15 text-emerald-600",
-                  // @ts-expect-error optional future field
-                  exercise.difficulty === "Średnio-zaawansowany" && "bg-amber-500/15 text-amber-700",
-                  // @ts-expect-error optional future field
-                  exercise.difficulty === "Zaawansowany" && "bg-red-500/15 text-red-600"
-                )}
-              >
-                {/* @ts-expect-error optional future field */}
-                {exercise.difficulty}
-              </span>
-            )}
-          </div>
+
 
           {exercise.description && (
             <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{exercise.description}</p>
           )}
 
           <div className="mt-3 flex flex-wrap gap-1">
-            {exercise.primaryMuscle.slice(0, 3).map((m) => (
+            {primary.slice(0, 3).map((m) => (
               <span key={m} className="rounded-md bg-muted px-2 py-0.5 text-xs">
                 {m}
               </span>
             ))}
-            {exercise.secondaryMuscle.slice(0, 2).map((m) => (
+            {secondary.slice(0, 2).map((m) => (
               <span key={m} className="rounded-md border px-2 py-0.5 text-xs">
                 {m}
               </span>
             ))}
-            {exercise.equipment.slice(0, 2).map((e) => (
+            {equipment.slice(0, 2).map((e) => (
               <span key={e} className="rounded-md border px-2 py-0.5 text-xs">
                 {e}
               </span>
