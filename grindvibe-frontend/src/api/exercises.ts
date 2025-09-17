@@ -7,13 +7,14 @@ export function getExerciseLists(): Promise<ExerciseLists> {
 }
 
 export type ExerciseDto = {
-    id: number;
+    id: string;
     name: string;
     imageUrl?: string;
     primaryMuscle: string[];
-    secondaryMuscle?: string[];
+    secondaryMuscle: string[];
     equipment: string[];
     description?: string | null;
+    videoUrl?: string | null; 
 }
 
 export type PagedResult<T> = {
@@ -23,10 +24,16 @@ export type PagedResult<T> = {
     items: T[];
 }
 
-export function searchExercises(params?: { q?: string; page?: number; pageSize?: number; }): {
+export function searchExercises(
+    params?: { q?: string; page?: number; pageSize?: number; }
+): Promise<PagedResult<ExerciseDto>> {
     const q = params?.q ?? "";
     const page = params?.page ?? 1;
     const pageSize = params?.pageSize ?? 20;
     const qs = new URLSearchParams({ q, page: page.toString(), pageSize: pageSize.toString() });
     return api<PagedResult<ExerciseDto>>(`/exercises?${qs.toString()}`);
+}
+
+export function getExerciseById(id: string): Promise<ExerciseDto> {
+    return api<ExerciseDto>(`/exercises/${id}`);
 }

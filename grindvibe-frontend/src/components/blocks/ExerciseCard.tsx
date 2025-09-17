@@ -1,18 +1,8 @@
 import { Card, CardContent } from "../ui/card";
 import { Button } from "../ui/button";
 import { cn } from "../../lib/utils";
-
-type Exercise = {
-  id: string;
-  name: string;
-  primaryMuscles: string[];
-  secondaryMuscles?: string[];
-  equipment: string[];
-  difficulty?: "Początkujący" | "Średnio-zaawansowany" | "Zaawansowany";
-  imageUrl?: string | null;
-  videoUrl?: string | null;
-  description?: string;
-};
+import { type ExerciseDto } from "../../api/exercises";
+import { Link } from "react-router-dom";
 
 function thumbGradient(seed: string) {
   let hash = 0;
@@ -22,15 +12,15 @@ function thumbGradient(seed: string) {
   return `linear-gradient(135deg, hsl(${h1},70%,55%), hsl(${h2},70%,55%))`;
 }
 
-export default function ExerciseCard({ ex }: { ex: Exercise }) {
+export default function ExerciseCard({ exercise }: { exercise: ExerciseDto }) {
   return (
     <Card className="overflow-hidden rounded-2xl border-0 shadow-[0_8px_30px_-12px_rgba(0,0,0,0.35)] dark:shadow-[0_8px_30px_-12px_rgba(0,0,0,0.7)]">
       <CardContent className="p-0">
         <div className="h-48 w-full overflow-hidden">
-          {ex.imageUrl ? (
+          {exercise.imageUrl ? (
             <img
-              src={ex.imageUrl}
-              alt={ex.name}
+              src={exercise.imageUrl}
+              alt={exercise.name}
               className="h-full w-full object-cover"
               loading="lazy"
               onError={(e) => {
@@ -39,10 +29,10 @@ export default function ExerciseCard({ ex }: { ex: Exercise }) {
             />
           ) : (
             <div
-              className="h-full w-full grid place-items-center text-white font-semibold text-lg"
-              style={{ background: thumbGradient(ex.name) }}
+              className="grid h-full w-full place-items-center text-lg font-semibold text-white"
+              style={{ background: thumbGradient(exercise.name) }}
             >
-              {ex.name
+              {exercise.name
                 .split(" ")
                 .slice(0, 2)
                 .map((w) => w[0])
@@ -54,37 +44,43 @@ export default function ExerciseCard({ ex }: { ex: Exercise }) {
 
         <div className="p-4">
           <div className="mb-1 flex items-center justify-between gap-2">
-            <h3 className="line-clamp-2 text-base font-semibold">{ex.name}</h3>
-            {ex.difficulty && (
+            <h3 className="line-clamp-2 text-base font-semibold">{exercise.name}</h3>
+            {/* Jeśli kiedyś dodasz difficulty do DTO, ta etykieta zadziała od razu */}
+            {/* @ts-expect-error optional future field */}
+            {exercise.difficulty && (
               <span
                 className={cn(
                   "rounded-md px-2 py-0.5 text-[11px] font-semibold",
-                  ex.difficulty === "Początkujący" && "bg-emerald-500/15 text-emerald-600",
-                  ex.difficulty === "Średnio-zaawansowany" && "bg-amber-500/15 text-amber-700",
-                  ex.difficulty === "Zaawansowany" && "bg-red-500/15 text-red-600"
+                  // @ts-expect-error optional future field
+                  exercise.difficulty === "Początkujący" && "bg-emerald-500/15 text-emerald-600",
+                  // @ts-expect-error optional future field
+                  exercise.difficulty === "Średnio-zaawansowany" && "bg-amber-500/15 text-amber-700",
+                  // @ts-expect-error optional future field
+                  exercise.difficulty === "Zaawansowany" && "bg-red-500/15 text-red-600"
                 )}
               >
-                {ex.difficulty}
+                {/* @ts-expect-error optional future field */}
+                {exercise.difficulty}
               </span>
             )}
           </div>
 
-          {ex.description && (
-            <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{ex.description}</p>
+          {exercise.description && (
+            <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{exercise.description}</p>
           )}
 
           <div className="mt-3 flex flex-wrap gap-1">
-            {ex.primaryMuscles.slice(0, 3).map((m) => (
+            {exercise.primaryMuscle.slice(0, 3).map((m) => (
               <span key={m} className="rounded-md bg-muted px-2 py-0.5 text-xs">
                 {m}
               </span>
             ))}
-            {(ex.secondaryMuscles ?? []).slice(0, 2).map((m) => (
+            {exercise.secondaryMuscle.slice(0, 2).map((m) => (
               <span key={m} className="rounded-md border px-2 py-0.5 text-xs">
                 {m}
               </span>
             ))}
-            {ex.equipment.slice(0, 2).map((e) => (
+            {exercise.equipment.slice(0, 2).map((e) => (
               <span key={e} className="rounded-md border px-2 py-0.5 text-xs">
                 {e}
               </span>
@@ -92,17 +88,14 @@ export default function ExerciseCard({ ex }: { ex: Exercise }) {
           </div>
 
           <div className="mt-4 flex items-center justify-between">
-            <Button
-              variant="outline"
-              size="sm"
-              className="cursor-pointer"
-              onClick={() => alert(`(Mock) Open details for: ${ex.name}`)}
-            >
-              Details
+            {/* ✅ Zamiast alertu — link do szczegółu */}
+            <Button asChild variant="outline" size="sm" className="cursor-pointer">
+              <Link to={`/exercises/${exercise.id}`}>Details</Link>
             </Button>
-            {ex.videoUrl ? (
+
+            {exercise.videoUrl ? (
               <a
-                href={ex.videoUrl}
+                href={exercise.videoUrl}
                 target="_blank"
                 rel="noreferrer"
                 className="text-sm text-[var(--gv-accent)] underline-offset-4 hover:underline"
