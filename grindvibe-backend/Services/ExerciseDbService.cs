@@ -21,13 +21,21 @@ namespace grindvibe_backend.Services
             var offset = Math.Max(0, (page - 1) * pageSize);
             var limit  = Math.Clamp(pageSize, 1, 25);
 
-            var qs = HttpUtility.ParseQueryString(string.Empty);
-            qs["q"]         = string.IsNullOrWhiteSpace(q) ? "all" : q;
-            qs["offset"]    = offset.ToString();
-            qs["limit"]     = limit.ToString();
-            qs["threshold"] = "0.3";
+            string url;
 
-            var url = $"exercises/search?{qs}"; 
+            if (string.IsNullOrWhiteSpace(q))
+            {
+                url = $"exercises?offset={offset}&limit={limit}";
+            }
+            else
+            {
+                var qs = HttpUtility.ParseQueryString(string.Empty);
+                qs["q"] = string.IsNullOrWhiteSpace(q) ? "all" : q;
+                qs["offset"] = offset.ToString();
+                qs["limit"] = limit.ToString();
+                qs["threshold"] = "0.3";
+                url = $"exercises/search?{qs}";
+            }
 
             var response = await _http.GetFromJsonAsync<ExerciseDbResponse>(url, ct);
 
