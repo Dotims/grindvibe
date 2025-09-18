@@ -30,7 +30,7 @@ export default function ExercisesPage() {
   const pageSize = 10;
 
   useEffect(() => {
-    let alive = true;
+    let alive = true;    
     (async () => {
       try {
         const data = await getExerciseLists();
@@ -51,14 +51,24 @@ export default function ExercisesPage() {
 
   useEffect(() => {
     let alive = true;
+
+    console.log("[ExercisesPage] state ->", { q, page, muscle, equipment });
+
     const t = setTimeout(() => {
       (async () => {
         setLoading(true);
         setError(null);
         try {
-          const res = await searchExercises({ q, page, pageSize });
-          console.log("[/exercises] items:", res.items.length, res.items[0]);
+          const res = await searchExercises({
+            q,
+            page,
+            pageSize,
+            muscle: muscle ? [muscle] : [],
+            equipment: equipment ? [equipment] : []
+          });
+
           if (!alive) return;
+
           setItems(res.items);
           setTotal(res.total);
         } catch {
@@ -73,12 +83,10 @@ export default function ExercisesPage() {
       alive = false;
       clearTimeout(t);
     };
-  }, [q, page]);
+  }, [q, page, muscle, equipment]);
 
   const canPrev = page > 1;
   const canNext = items.length === pageSize && page * pageSize < total;
-
-  console.log("STATE:", { loading, error, count: items.length, page, total });
 
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-10">
@@ -108,7 +116,7 @@ export default function ExercisesPage() {
           <SimpleSelect
             value={muscle}
             onChange={(v) => {
-              setPage(1); // paginacja od nowa po zmianie filtra
+              setPage(1); 
               setMuscle(v);
             }}
             options={muscleOptions}
@@ -144,9 +152,11 @@ export default function ExercisesPage() {
         <>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {items.map((ex) => (
-              <Link key={ex.id} to={`/exercises/${ex.id}`}>
-                <ExerciseCard exercise={ex} />
-              </Link>
+              <ExerciseCard
+                key={ex.id}
+                exercise={ex}
+                to={`/exercise/${ex.id}`} 
+              />
             ))}
           </div>
 

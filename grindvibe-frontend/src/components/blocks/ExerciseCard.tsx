@@ -11,14 +11,27 @@ function thumbGradient(seed: string) {
   return `linear-gradient(135deg, hsl(${h1},70%,55%), hsl(${h2},70%,55%))`;
 }
 
-export default function ExerciseCard({ exercise }: { exercise: ExerciseDto }) {
+type Props = {
+  exercise: ExerciseDto;
+  to?: string; 
+};
+
+export default function ExerciseCard({ exercise, to }: Props) {
   const primary: string[] = exercise.primaryMuscle ?? [];
   const secondary: string[] = exercise.secondaryMuscle ?? [];
   const equipment: string[] = exercise.equipment ?? [];
 
   return (
-    <Card className="overflow-hidden rounded-2xl border-0 shadow-[0_8px_30px_-12px_rgba(0,0,0,0.35)] dark:shadow-[0_8px_30px_-12px_rgba(0,0,0,0.7)]">
-      <CardContent className="p-0">
+    <Card className="relative overflow-hidden rounded-2xl border-0 shadow-[0_8px_30px_-12px_rgba(0,0,0,0.35)] dark:shadow-[0_8px_30px_-12px_rgba(0,0,0,0.7)]">
+      {to && (
+        <Link
+          to={to}
+          aria-label={`Open details of ${exercise.name}`}
+          className="absolute inset-0 z-10"
+        />
+      )}
+
+      <CardContent className="relative z-0 p-0">
         <div className="h-48 w-full overflow-hidden">
           {exercise.imageUrl ? (
             <img
@@ -26,7 +39,8 @@ export default function ExerciseCard({ exercise }: { exercise: ExerciseDto }) {
               alt={exercise.name}
               className="h-full w-full object-cover"
               loading="lazy"
-              onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none";
+              onError={(e) => {
+                (e.currentTarget as HTMLImageElement).style.display = "none";
               }}
             />
           ) : (
@@ -45,10 +59,12 @@ export default function ExerciseCard({ exercise }: { exercise: ExerciseDto }) {
         </div>
 
         <div className="p-4">
-
+          <h3 className="text-base font-semibold leading-tight">{exercise.name}</h3>
 
           {exercise.description && (
-            <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{exercise.description}</p>
+            <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
+              {exercise.description}
+            </p>
           )}
 
           <div className="mt-3 flex flex-wrap gap-1">
@@ -70,20 +86,21 @@ export default function ExerciseCard({ exercise }: { exercise: ExerciseDto }) {
           </div>
 
           <div className="mt-4 flex items-center justify-between">
-            {/* ✅ Zamiast alertu — link do szczegółu */}
-            <Button asChild variant="outline" size="sm" className="cursor-pointer">
-              <Link to={`/exercises/${exercise.id}`}>Details</Link>
+            <Button variant="outline" size="sm" className="cursor-pointer">
+              Details
             </Button>
 
             {exercise.videoUrl ? (
-              <a
-                href={exercise.videoUrl}
-                target="_blank"
-                rel="noreferrer"
+              <button
+                type="button"
                 className="text-sm text-[var(--gv-accent)] underline-offset-4 hover:underline"
+                onClick={(e) => {
+                  e.stopPropagation(); // nie klikaj overlayu
+                  window.open(exercise.videoUrl!, "_blank", "noopener,noreferrer");
+                }}
               >
                 Watch video
-              </a>
+              </button>
             ) : (
               <span className="text-sm text-muted-foreground">No video</span>
             )}

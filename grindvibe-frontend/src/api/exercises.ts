@@ -24,8 +24,16 @@ export type PagedResult<T> = {
     items: T[];
 }
 
+export type SearchExercisesParams = {
+    q?: string;
+    page?: number;
+    pageSize?: number;
+    muscle?: string[];
+    equipment?: string[];
+}
+
 export function searchExercises(
-    params?: { q?: string; page?: number; pageSize?: number; }
+    params?: SearchExercisesParams
 ): Promise<PagedResult<ExerciseDto>> {
     const q = (params?.q ?? "").trim();
     const page = params?.page ?? 1;
@@ -36,7 +44,19 @@ export function searchExercises(
         pageSize: String(pageSize)
     });
 
+
     if (q) qs.set("q", q);
+
+    for (const m of params?.muscle ?? []) {
+        if (m && m.trim()) qs.append("muscles", m.trim());
+    }
+
+    for (const e of params?.equipment ?? []) {
+        if (e && e.trim()) qs.append("equipment", e.trim());
+    }
+
+    const url = `/exercises?${qs.toString()}`;
+    console.log("[Exercises] Fetching", url);
 
     return api<PagedResult<ExerciseDto>>(`/exercises?${qs.toString()}`);
 }
