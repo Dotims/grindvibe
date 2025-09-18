@@ -59,10 +59,11 @@ public class ExercisesController : ControllerBase
         static string[] ParseMulti(StringValues rawValues, string[]? binderValues)
         {
              var fromRaw = rawValues
-                .SelectMany(v => v.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
-                .ToArray();
+                .Where(v => !string.IsNullOrWhiteSpace(v)) 
+                .SelectMany(v => v!.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
 
-            var fromBinder = binderValues ?? Array.Empty<string>();
+            var fromBinder = (binderValues ?? Array.Empty<string>())
+                .Where(v => !string.IsNullOrWhiteSpace(v));
 
             return fromRaw
                 .Concat(fromBinder)
@@ -102,11 +103,11 @@ public class ExercisesController : ControllerBase
         {
             Page     = result.Page,
             PageSize = result.PageSize,
-            Total    = filteredList.Count,
+            Total    = result.Total,
             Items    = filteredList
         };
 
-        return Ok(result);
+        return Ok(response);
     }
 
     [HttpGet("{id}")]
