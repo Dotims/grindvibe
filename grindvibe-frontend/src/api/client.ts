@@ -9,7 +9,7 @@ export default async function api<T>(
         ...options,
         headers: {
             'Content-Type': 'application/json',
-            ...(token ? { Authorization: `Bearer ${token}` } : {}), // dodaj autoryzacje tylko gdy token istnieje
+            ...(token ? { Authorization: `Bearer ${token}` } : {}), // dodaje autoryzacje tylko gdy token istnieje
             ...(options.headers || {}),
         },
     });
