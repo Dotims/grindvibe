@@ -1,15 +1,21 @@
 import { Listbox, Transition } from "@headlessui/react";
 import { ChevronDown, Check } from "lucide-react";
-import { Fragment } from "react";
+import { Fragment, useMemo } from "react";
 import { cn } from "../../lib/utils";
 
 type SimpleSelectProps = {
-  value: string;
+  value: string;            
   onChange: (v: string) => void;
-  options: string[];
+  options: string[];         
   placeholder: string;
   className?: string;
 };
+
+function norm(s: string | undefined | null): string {
+  if (!s) return "";
+  const trimmed = s.trim().toLowerCase();
+  return trimmed.split(/\s+/).join(" ");
+}
 
 export default function SimpleSelect({
   value,
@@ -18,8 +24,24 @@ export default function SimpleSelect({
   placeholder,
   className,
 }: SimpleSelectProps) {
+  const mapped = useMemo(
+    () =>
+      options.map((label) => ({
+        value: norm(label),
+        label,              
+      })),
+    [options]
+  );
+
+  const selectedLabel =
+    mapped.find((o) => o.value === value)?.label || (value ? value : "");
+
+  const handleChange = (v: string) => {
+    onChange(norm(v));
+  };
+
   return (
-    <Listbox value={value} onChange={onChange}>
+    <Listbox value={value} onChange={handleChange}>
       <div className={cn("relative", className)}>
         <Listbox.Button
           className="
@@ -30,7 +52,7 @@ export default function SimpleSelect({
           "
         >
           <span className={cn(!value && "text-muted-foreground")}>
-            {value || placeholder}
+            {selectedLabel || placeholder}
           </span>
           <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 opacity-70" />
         </Listbox.Button>
@@ -68,10 +90,10 @@ export default function SimpleSelect({
               )}
             </Listbox.Option>
 
-            {options.map((opt) => (
+            {mapped.map((opt) => (
               <Listbox.Option
-                key={opt}
-                value={opt}
+                key={opt.value}       
+                value={opt.value}      
                 className={({ active }) =>
                   cn(
                     "cursor-pointer px-3 py-2 text-sm",
@@ -82,7 +104,7 @@ export default function SimpleSelect({
                 {({ selected }) => (
                   <div className="flex items-center gap-2">
                     {selected ? <Check className="h-4 w-4" /> : <span className="h-4 w-4" />}
-                    <span>{opt}</span>
+                    <span>{opt.label}</span>
                   </div>
                 )}
               </Listbox.Option>

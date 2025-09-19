@@ -1,10 +1,9 @@
 import { useState, useEffect } from "react";
 import { Input } from "../../components/ui/input";
-// import { Button } from "../../components/ui/button";
-// import { cn } from "../../lib/utils";
 import { Search } from "lucide-react";
 import SimpleSelect from "../../components/blocks/SimpleSelect";
-import { getExerciseLists } from "../../api/exercises";
+import { type ExerciseDto, getExerciseLists, searchExercises } from "../../api/exercises";
+import ExerciseCard from "../../components/blocks/ExerciseCard";
 
 export default function ExercisesPage() {
   // filtry ui
@@ -21,15 +20,23 @@ export default function ExercisesPage() {
   const [listsLoading, setListsLoading] = useState(true);
   const [listsError, setListsError] = useState<string | null>(null);
 
+  // lista cwiczen
+  const [items, setItems] = useState<ExerciseDto[]>([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
+
   useEffect(() => {
-    let alive = true;
+    let alive = true;    
     (async () => {
       try {
         const data = await getExerciseLists();
         if (!alive) return;
 
         setMuscleOptions(data.muscles ?? []);
-        setEquipmentOptions(data.equipment ?? []);
+        setEquipmentOptions(data.equipments ?? []);
         setListsError(null);
       } catch (err) {
         if (!alive) return;
@@ -40,6 +47,45 @@ export default function ExercisesPage() {
     })();
     return () => { alive = false };
   }, []);
+
+  useEffect(() => {
+    let alive = true;
+
+    console.log("[ExercisesPage] state ->", { q, page, muscle, equipment });
+
+    const t = setTimeout(() => {
+      (async () => {
+        setLoading(true);
+        setError(null);
+        try {
+          const res = await searchExercises({
+            q,
+            page,
+            pageSize,
+            muscle: muscle ? [muscle] : [],
+            equipment: equipment ? [equipment] : []
+          });
+
+          if (!alive) return;
+
+          setItems(res.items);
+          setTotal(res.total);
+        } catch {
+          if (alive) setError("Nie udało się pobrać ćwiczeń");
+        } finally {
+          if (alive) setLoading(false);
+        }
+      })();
+    }, 300);
+
+    return () => {
+      alive = false;
+      clearTimeout(t);
+    };
+  }, [q, page, muscle, equipment]);
+
+  const canPrev = page > 1;
+  const canNext = items.length === pageSize && page * pageSize < total;
 
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-10">
@@ -58,37 +104,84 @@ export default function ExercisesPage() {
             <Input
               placeholder="Search by name (EN)…"
               value={q}
-              onChange={(e) => setQ(e.target.value)}
+              onChange={(e) => {
+                setPage(1); 
+                setQ(e.target.value);
+              }}
               className="h-10 pl-8"
             />
           </div>
 
           <SimpleSelect
             value={muscle}
-            onChange={setMuscle}
+            onChange={(v) => {
+              setPage(1); 
+              setMuscle(v);
+            }}
             options={muscleOptions}
             placeholder="Body part"
           />
 
           <SimpleSelect
             value={equipment}
-            onChange={setEquipment}
+            onChange={(v) => {
+              setPage(1);
+              setEquipment(v);
+            }}
             options={equipmentOptions}
             placeholder="Equipment"
           />
         </div>
       </div>
 
-      {listsLoading && (
-        <div className="mb-4 text-sm text-muted-foreground">Loading filters…</div>
-      )}
-      {listsError && (
-        <div className="mb-4 text-sm text-red-600">Failed to load filters: {listsError}</div>
+      {listsLoading && <div className="mb-4 text-sm text-muted-foreground">Loading filters…</div>}
+      {listsError && <div className="mb-4 text-sm text-red-600">Failed to load filters: {listsError}</div>}
+
+      {/* Wyniki */}
+      {loading && <div className="mb-4 text-sm text-muted-foreground">Loading exercises…</div>}
+      {error && <div className="mb-4 text-sm text-red-600">{error}</div>}
+
+      {!loading && !error && items.length === 0 && (
+        <div className="grid place-items-center rounded-xl border border-dashed p-10 text-center text-sm text-muted-foreground">
+          Brak wyników.
+        </div>
       )}
 
-      <div className="grid place-items-center rounded-xl border border-dashed p-10 text-center text-sm text-muted-foreground">
-        test
-      </div>
+      {!loading && !error && items.length > 0 && (
+        <>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {items.map((ex) => (
+              <ExerciseCard
+                key={ex.id}
+                exercise={ex}
+                to={`/exercise/${ex.id}`} 
+              />
+            ))}
+          </div>
+
+          {/* Paginacja */}
+          <div className="mt-6 flex items-center justify-center gap-2">
+            <button
+              disabled={!canPrev}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              className="rounded-md border px-3 py-1 text-sm disabled:opacity-50"
+            >
+              Prev
+            </button>
+            <span className="text-sm">
+              Page {page}
+              {total ? ` / ${Math.ceil(total / pageSize)}` : ""}
+            </span>
+            <button
+              disabled={!canNext}
+              onClick={() => setPage((p) => p + 1)}
+              className="rounded-md border px-3 py-1 text-sm disabled:opacity-50"
+            >
+              Next
+            </button>
+          </div>
+        </>
+      )}
     </main>
   );
 }

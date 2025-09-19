@@ -11,6 +11,8 @@ namespace grindvibe_backend.Models
         public string? ImageUrl { get; set; }
         public string? VideoUrl { get; set; }
         public string? Description { get; set; }
+        public string? BodyPart { get; set; }
+        public List<string>? instructions { get; set; }
     }
 
     public class PagedResponse<T>
