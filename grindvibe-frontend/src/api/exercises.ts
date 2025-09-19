@@ -15,6 +15,7 @@ export type ExerciseDto = {
     equipment: string[];
     description?: string | null;
     videoUrl?: string | null; 
+    bodyPart?: string | null;
 }
 
 export type PagedResult<T> = {
@@ -55,8 +56,7 @@ export function searchExercises(
         if (e && e.trim()) qs.append("equipment", e.trim());
     }
 
-    const url = `/exercises?${qs.toString()}`;
-    console.log("[Exercises] Fetching", url);
+    console.log("[/exercises] URL ->", `/exercises?${qs.toString()}`);
 
     return api<PagedResult<ExerciseDto>>(`/exercises?${qs.toString()}`);
 }

@@ -42,16 +42,28 @@ namespace grindvibe_backend.Services
             if (response is null)
                 return new PagedResponse<ExerciseDto>();
 
-            var items = response.data.Select(e => new ExerciseDto
+            var items = response.data.Select(e =>
             {
-                Id               = e.exerciseId,
-                Name             = e.name,
-                PrimaryMuscles   = e.targetMuscles ?? new List<string>(),
-                SecondaryMuscles = e.secondaryMuscles ?? new List<string>(),
-                Equipment        = e.equipments ?? new List<string>(), 
-                ImageUrl         = e.gifUrl,
-                Description      = e.instructions is not null ? string.Join(" ", e.instructions) : null
+                var bodyPart =
+                    !string.IsNullOrWhiteSpace(e.bodyPart)
+                        ? e.bodyPart.Trim()
+                        : (e.bodyParts is not null
+                            ? e.bodyParts.FirstOrDefault(s => !string.IsNullOrWhiteSpace(s))?.Trim()
+                            : null);
+
+                return new ExerciseDto
+                {
+                    Id = e.exerciseId,
+                    Name = e.name,
+                    PrimaryMuscles   = e.targetMuscles    ?? new List<string>(),
+                    SecondaryMuscles = e.secondaryMuscles ?? new List<string>(),
+                    Equipment        = e.equipments       ?? new List<string>(),
+                    ImageUrl    = e.gifUrl,
+                    Description = e.instructions is not null ? string.Join(" ", e.instructions) : null,
+                    BodyPart    = bodyPart    
+                };
             }).ToList();
+
 
             return new PagedResponse<ExerciseDto>
             {
@@ -105,7 +117,7 @@ namespace grindvibe_backend.Services
 
             var dto = new ExerciseDto
             {
-                Id   = data.GetProperty("exerciseId").GetString() ?? id,
+                Id = data.GetProperty("exerciseId").GetString() ?? id,
                 Name = data.GetProperty("name").GetString() ?? "",
 
                 ImageUrl = data.TryGetProperty("gifUrl", out var gif)
@@ -138,7 +150,16 @@ namespace grindvibe_backend.Services
                         instr.EnumerateArray()
                             .Select(x => x.GetString() ?? "")
                             .Where(x => !string.IsNullOrWhiteSpace(x)))
-                    : null
+                    : null,
+                    
+                BodyPart = data.TryGetProperty("bodyParts", out var bodyPartsString) && bodyPartsString.ValueKind == JsonValueKind.Array
+                    ? bodyPartsString.EnumerateArray()
+                        .Select(x => x.GetString() ?? "")
+                        .FirstOrDefault(s => !string.IsNullOrWhiteSpace(s))?
+                        .Trim()
+                    : (data.TryGetProperty("bodyPart", out var bodyPartsString1) && bodyPartsString1.ValueKind == JsonValueKind.String
+                        ? (bodyPartsString1.GetString() ?? "").Trim()
+                        : null)
             };
 
             return dto;
@@ -196,7 +217,9 @@ namespace grindvibe_backend.Services
         public List<string>? targetMuscles { get; set; }
         public List<string>? secondaryMuscles { get; set; }
         public List<string>? equipments { get; set; }
+        public string? bodyPart { get; set; }
         public List<string>? bodyParts { get; set; }
         public List<string>? instructions { get; set; }
     }
+
 }
