@@ -105,7 +105,7 @@ export default function ExercisesPage() {
               placeholder="Search by name (EN)…"
               value={q}
               onChange={(e) => {
-                setPage(1); // przy zmianie zapytania wróć na pierwszą stronę
+                setPage(1); 
                 setQ(e.target.value);
               }}
               className="h-10 pl-8"

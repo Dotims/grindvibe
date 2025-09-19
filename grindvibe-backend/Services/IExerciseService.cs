@@ -14,5 +14,10 @@ namespace grindvibe_backend.Services
         // szczegoly cwiczenia
         Task<ExerciseDto?> GetByIdAsync(string id, CancellationToken ct = default);
 
+        // filtrowanie
+        Task<PagedResponse<ExerciseDto>> GetByBodyPartAsync(string bodyPart, int page, int pageSize, CancellationToken ct = default);
+        Task<PagedResponse<ExerciseDto>> GetByEquipmentAsync(string equipment, int page, int pageSize, CancellationToken ct = default);
+
+
     }
 }

@@ -47,6 +47,7 @@ public class ExercisesController : ControllerBase
         CancellationToken ct = default)
     {
 
+       // helpers
         static string[] ParseMulti(StringValues rawValues, string[]? binderValues)
         {
             var fromRaw = rawValues
@@ -73,8 +74,160 @@ public class ExercisesController : ControllerBase
 
         static string NormCanon(string? s) => Canon(Norm(s));
 
+        // parsowanie
         var musclesParsed   = ParseMulti(Request.Query["muscles"], muscles);
         var equipmentParsed = ParseMulti(Request.Query["equipment"], equipment);
+
+        var onlyBodyPart  = (musclesParsed.Length == 1) && (equipmentParsed.Length == 0);
+        var onlyEquipment = (musclesParsed.Length == 0) && (equipmentParsed.Length == 1);
+        var bothSingle    = (musclesParsed.Length == 1) && (equipmentParsed.Length == 1);
+
+        if (onlyBodyPart)
+        {
+            var requested = musclesParsed[0];           
+            var requestedNorm = NormCanon(requested);   
+
+            var needCount = Math.Max(page, 1) * Math.Max(pageSize, 1);
+            var acc = new List<ExerciseDto>(needCount);
+
+            const int upstreamPageSize = 25; 
+            int upstreamPage = 1;
+            int safetyMaxPages = 8;       
+            try
+            {
+                while (acc.Count < needCount && safetyMaxPages-- > 0)
+                {
+                    var batch = await _exerciseService.SearchAsync(requested, upstreamPage, upstreamPageSize, ct);
+
+                    var filtered = (batch.Items ?? Enumerable.Empty<ExerciseDto>())
+                        .Where(e =>
+                        {
+                            var actual = NormCanon(e.BodyPart);
+                            if (string.IsNullOrEmpty(actual)) return false;
+                            return actual == requestedNorm || actual.Contains(requestedNorm) || requestedNorm.Contains(actual);
+                        });
+
+                    acc.AddRange(filtered);
+
+                    if ((batch.Items?.Count ?? 0) < upstreamPageSize) break;
+
+                    upstreamPage++;
+                    await Task.Delay(120, ct);
+                }
+            }
+            catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
+            {
+                return StatusCode(StatusCodes.Status429TooManyRequests, new { message = "ExerciseDB rate limit (429)", detail = ex.Message });
+            }
+            catch (System.Text.Json.JsonException ex)
+            {
+                return StatusCode(StatusCodes.Status502BadGateway, new { message = "Invalid JSON from ExerciseDB", detail = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status502BadGateway, new { message = "Upstream error", detail = ex.Message });
+            }
+
+            var skipCount = (Math.Max(page, 1) - 1) * Math.Max(pageSize, 1);
+            var filteredPageItems = acc.Skip(skipCount).Take(pageSize).ToList();
+
+            return Ok(new PagedResponse<ExerciseDto>
+            {
+                Page     = page,
+                PageSize = pageSize,
+                Total    = acc.Count,         
+                Items    = filteredPageItems
+            });
+        }
+
+        if (onlyEquipment)
+        {
+            try
+            {
+                var eq = equipmentParsed[0];
+                var res = await _exerciseService.GetByEquipmentAsync(eq, page, pageSize, ct);
+                return Ok(res);
+            }
+            catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
+            {
+                return StatusCode(StatusCodes.Status429TooManyRequests, new { message = "ExerciseDB rate limit (429)", detail = ex.Message });
+            }
+            catch (System.Text.Json.JsonException ex)
+            {
+                return StatusCode(StatusCodes.Status502BadGateway, new { message = "Invalid JSON from ExerciseDB", detail = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status502BadGateway, new { message = "Upstream error", detail = ex.Message });
+            }
+        }
+
+        if (bothSingle)
+        {
+            var requested = musclesParsed[0];
+            var requestedNorm = NormCanon(requested);
+
+            var requestedEquip = Norm(equipmentParsed[0]);
+
+            var needCount = Math.Max(page, 1) * Math.Max(pageSize, 1);
+            var acc = new List<ExerciseDto>(needCount);
+
+            const int upstreamPageSize = 25;
+            int upstreamPage = 1;
+            int safetyMaxPages = 8;
+
+            try
+            {
+                while (acc.Count < needCount && safetyMaxPages-- > 0)
+                {
+                    var batch = await _exerciseService.SearchAsync(requested, upstreamPage, upstreamPageSize, ct);
+
+                    var filtered = (batch.Items ?? Enumerable.Empty<ExerciseDto>())
+                        .Where(e =>
+                        {
+                            var actual = NormCanon(e.BodyPart);
+                            if (string.IsNullOrEmpty(actual)) return false;
+
+                            var bodyOk = (actual == requestedNorm || actual.Contains(requestedNorm) || requestedNorm.Contains(actual));
+                            if (!bodyOk) return false;
+
+                            var equipList = (e.Equipment ?? new List<string>()).Select(Norm);
+                            return equipList.Any(x => x == requestedEquip);
+                        });
+
+                    acc.AddRange(filtered);
+
+                    if ((batch.Items?.Count ?? 0) < upstreamPageSize) break;
+
+                    upstreamPage++;
+                    await Task.Delay(120, ct);
+                }
+            }
+            catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
+            {
+                return StatusCode(StatusCodes.Status429TooManyRequests, new { message = "ExerciseDB rate limit (429)", detail = ex.Message });
+            }
+            catch (System.Text.Json.JsonException ex)
+            {
+                return StatusCode(StatusCodes.Status502BadGateway, new { message = "Invalid JSON from ExerciseDB", detail = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status502BadGateway, new { message = "Upstream error", detail = ex.Message });
+            }
+
+            var skipCount = (Math.Max(page, 1) - 1) * Math.Max(pageSize, 1);
+            var filteredPageItems = acc.Skip(skipCount).Take(pageSize).ToList();
+
+            return Ok(new PagedResponse<ExerciseDto>
+            {
+                Page     = page,
+                PageSize = pageSize,
+                Total    = acc.Count,
+                Items    = filteredPageItems
+            });
+        }
+
 
         var bodyPartsSet = new HashSet<string>(musclesParsed,   StringComparer.OrdinalIgnoreCase);
         var equipmentSet = new HashSet<string>(equipmentParsed, StringComparer.OrdinalIgnoreCase);
@@ -86,7 +239,7 @@ public class ExercisesController : ControllerBase
                 var x = t.Trim().ToLowerInvariant();
                 if (string.IsNullOrWhiteSpace(x)) continue;
 
-                yield return x;
+                yield return x; 
 
                 if (x == "back")  { yield return "upper back"; yield return "lower back"; }
                 if (x == "arms")  { yield return "upper arms"; yield return "lower arms"; }
@@ -126,6 +279,7 @@ public class ExercisesController : ControllerBase
         {
             var query = source ?? Enumerable.Empty<ExerciseDto>();
 
+            // BodyPart
             var requestedParts = bodyPartsExpanded
                 .Select(NormCanon)
                 .Where(s => !string.IsNullOrEmpty(s))
@@ -146,6 +300,7 @@ public class ExercisesController : ControllerBase
                 });
             }
 
+            // Equipment
             var requestedEquip = equipmentSet
                 .Select(Norm)
                 .Where(s => !string.IsNullOrEmpty(s))
@@ -163,33 +318,31 @@ public class ExercisesController : ControllerBase
             return query;
         }
 
-        var needCount = Math.Max(page, 1) * Math.Max(pageSize, 1);
-        var acc = new List<ExerciseDto>(needCount);
+        var need = Math.Max(page, 1) * Math.Max(pageSize, 1);
+        var agg = new List<ExerciseDto>(need);
 
-        const int upstreamPageSize = 25; 
-        int upstreamPage = 1;
+        const int upPageSize = 25; 
+        int upPage = 1;
         int totalUpstream = int.MaxValue;
-        int safetyMaxPages = 4; 
+        int safety = 4;
 
         try
         {
-            while (acc.Count < needCount &&
-                (upstreamPage - 1) * upstreamPageSize < totalUpstream &&
-                safetyMaxPages-- > 0)
+            while (agg.Count < need &&
+                (upPage - 1) * upPageSize < totalUpstream &&
+                safety-- > 0)
             {
-                var batch = await _exerciseService.SearchAsync(q, upstreamPage, upstreamPageSize, ct);
+                var batch = await _exerciseService.SearchAsync(q, upPage, upPageSize, ct);
 
-                if (upstreamPage == 1)
+                if (upPage == 1)
                     totalUpstream = batch.Total;
 
-                acc.AddRange(ApplyFilters(batch.Items ?? Enumerable.Empty<ExerciseDto>(), bodyPartsExpanded, equipmentSet));
+                agg.AddRange(ApplyFilters(batch.Items ?? Enumerable.Empty<ExerciseDto>(), bodyPartsExpanded, equipmentSet));
 
-                if ((batch.Items?.Count ?? 0) < upstreamPageSize)
-                    break;
+                if ((batch.Items?.Count ?? 0) < upPageSize) break;
 
-                upstreamPage++;
-
-                await Task.Delay(120, ct);
+                upPage++;
+                await Task.Delay(120, ct); 
             }
         }
         catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
@@ -205,19 +358,20 @@ public class ExercisesController : ControllerBase
             return StatusCode(StatusCodes.Status502BadGateway, new { message = "Upstream error", detail = ex.Message });
         }
 
-        var skip = (Math.Max(page, 1) - 1) * Math.Max(pageSize, 1);
-        var pageItems = acc.Skip(skip).Take(pageSize).ToList();
+        var skipCountFinal = (Math.Max(page, 1) - 1) * Math.Max(pageSize, 1);
+        var pageItemsFinal = agg.Skip(skipCountFinal).Take(pageSize).ToList();
 
         var response = new PagedResponse<ExerciseDto>
         {
             Page     = page,
             PageSize = pageSize,
             Total    = totalUpstream, 
-            Items    = pageItems
+            Items    = pageItemsFinal
         };
 
         return Ok(response);
     }
+
 
 
     [HttpGet("{id}")]
