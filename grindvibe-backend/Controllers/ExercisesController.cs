@@ -167,7 +167,7 @@ public class ExercisesController : ControllerBase
             var requested = musclesParsed[0];
             var requestedNorm = NormCanon(requested);
 
-            var requestedEquip = Norm(equipmentParsed[0]);
+            var requestedEquip = NormCanon(equipmentParsed[0]);
 
             var needCount = Math.Max(page, 1) * Math.Max(pageSize, 1);
             var acc = new List<ExerciseDto>(needCount);
@@ -190,8 +190,8 @@ public class ExercisesController : ControllerBase
 
                             var bodyOk = (actual == requestedNorm || actual.Contains(requestedNorm) || requestedNorm.Contains(actual));
                             if (!bodyOk) return false;
-
-                            var equipList = (e.Equipment ?? new List<string>()).Select(Norm);
+                            
+                            var equipList = (e.Equipment ?? new List<string>()).Select(NormCanon); 
                             return equipList.Any(x => x == requestedEquip);
                         });
 
@@ -302,18 +302,19 @@ public class ExercisesController : ControllerBase
 
             // Equipment
             var requestedEquip = equipmentSet
-                .Select(Norm)
+                .Select(NormCanon)
                 .Where(s => !string.IsNullOrEmpty(s))
-                .ToHashSet();
+                .ToArray();
 
-            if (requestedEquip.Count > 0)
+            if (requestedEquip.Length > 0)
             {
                 query = query.Where(e =>
                     (e.Equipment ?? new List<string>())
-                        .Select(Norm)
-                        .Any(eq => requestedEquip.Contains(eq))
+                    .Select(NormCanon)
+                    .Any(eq => requestedEquip.Contains(eq))
                 );
             }
+
 
             return query;
         }
