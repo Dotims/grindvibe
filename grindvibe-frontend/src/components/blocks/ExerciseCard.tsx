@@ -3,8 +3,8 @@ import { Button } from "../ui/button";
 import { type ExerciseDto } from "../../api/exercises";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
+import { useMemo, useState } from "react";
 
-// gradient fallback (bez zmian)
 function thumbGradient(seed: string) {
   let hash = 0;
   for (let i = 0; i < seed.length; i++) hash = seed.charCodeAt(i) + ((hash << 5) - hash);
@@ -13,23 +13,42 @@ function thumbGradient(seed: string) {
   return `linear-gradient(135deg, hsl(${h1},75%,70%), hsl(${h2},75%,70%))`;
 }
 
-// [REMOVED] funkcja emojiForPart – usuwamy emotki z chipów
-
 type Props = {
   exercise: ExerciseDto;
   to?: string;
 };
 
 export default function ExerciseCard({ exercise, to }: Props) {
-  // guardy na dane
-  const primary: string[] = exercise.primaryMuscle ?? [];
-  const secondary: string[] = exercise.secondaryMuscle ?? [];
-  const equipment: string[] = exercise.equipment ?? [];
+  const primary = exercise.primaryMuscles ?? [];
+  const secondary = exercise.secondaryMuscles ?? [];
+  const equipment = exercise.equipment ?? [];
 
-  // preferujemy bodyPart; fallback: pierwszy primary
   const bodyPartLabel: string | null =
-    (exercise.bodyPart?.trim() || null) ??
+    exercise.bodyPart?.trim() ??
+    (exercise.bodyPart?.trim() ?? null) ??
     (primary.find((s) => !!s && s.trim().length > 0)?.trim() ?? null);
+
+  const [fitMode, setFitMode] = useState<"cover" | "contain">("cover");
+
+  const decideFit = (img: HTMLImageElement) => {
+    const { naturalWidth: w, naturalHeight: h } = img;
+    if (!w || !h) return;
+    const ratio = h / w;
+    setFitMode(ratio > 1.25 ? "contain" : "cover");
+  };
+
+  const hasImage = !!exercise.imageUrl;
+
+  const initials = useMemo(
+    () =>
+      exercise.name
+        .split(" ")
+        .slice(0, 2)
+        .map((w) => w[0])
+        .join("")
+        .toUpperCase(),
+    [exercise.name]
+  );
 
   return (
     <motion.div
@@ -42,43 +61,51 @@ export default function ExerciseCard({ exercise, to }: Props) {
         <Link
           to={to}
           aria-label={`Open details of ${exercise.name}`}
-          // [CHANGED][FOCUS] wyłączamy ring/outline, aby nie było zielonego obramowania karty
           className="absolute inset-0 z-10 rounded-3xl outline-none focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0"
         />
       )}
 
       <Card className="relative overflow-hidden rounded-3xl border-0 bg-gradient-to-b from-white to-white/60 shadow-[0_10px_30px_-12px_rgba(0,0,0,0.25)] dark:from-zinc-900 dark:to-zinc-900/60 dark:shadow-[0_10px_30px_-12px_rgba(0,0,0,0.6)]">
         <CardContent className="p-0">
-          <div className="h-44 w-full overflow-hidden bg-[rgba(0,0,0,0.03)]">
-            {exercise.imageUrl ? (
+          <div
+            className={[
+              "relative w-full overflow-hidden",
+              "aspect-[4/3] sm:aspect-[16/10] md:aspect-[16/9]",
+              "bg-[rgba(0,0,0,0.03)] dark:bg-zinc-800/40",
+            ].join(" ")}
+          >
+            {hasImage ? (
               <img
                 src={exercise.imageUrl}
                 alt={exercise.name}
-                className="h-full w-full object-cover"
                 loading="lazy"
+                decoding="async"
+                fetchPriority="low"
+                onLoad={(e) => decideFit(e.currentTarget)}
                 onError={(e) => {
                   (e.currentTarget as HTMLImageElement).style.display = "none";
+                  const fallback = e.currentTarget.nextElementSibling as HTMLDivElement | null;
+                  if (fallback) fallback.style.display = "grid";
                 }}
+                className={[
+                  "absolute inset-0 h-full w-full transition-[transform,filter] duration-300 object-contain bg-[#fff]",
+                  fitMode === "cover" ? "object-contain" : "object-contain p-2", 
+                  "will-change-transform",
+                ].join(" ")}
               />
-            ) : (
-              <div
-                className="grid h-full w-full place-items-center text-xl font-semibold text-white"
-                style={{ background: thumbGradient(exercise.name) }}
-              >
-                {exercise.name
-                  .split(" ")
-                  .slice(0, 2)
-                  .map((w) => w[0])
-                  .join("")
-                  .toUpperCase()}
-              </div>
-            )}
+            ) : null}
+
+            <div
+              className="absolute inset-0 hidden place-items-center text-xl font-semibold text-white"
+              style={{ background: thumbGradient(exercise.name) }}
+            >
+              {initials}
+            </div>
           </div>
 
           <div className="p-4">
             <div className="mb-2 flex items-center gap-2">
               {bodyPartLabel && (
-                // [CHANGED] sam label bodyPart – bez emotek, bez dodatkowego ring-a
                 <span className="inline-flex items-center rounded-full bg-[color(display-p3_0.95_0.98_0.90)] px-2.5 py-1 text-[11px] font-medium text-[color(display-p3_0.18_0.55_0.25)]">
                   {bodyPartLabel}
                 </span>

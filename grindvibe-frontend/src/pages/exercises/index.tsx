@@ -4,6 +4,36 @@ import { Search } from "lucide-react";
 import SimpleSelect from "../../components/blocks/SimpleSelect";
 import { type ExerciseDto, getExerciseLists, searchExercises } from "../../api/exercises";
 import ExerciseCard from "../../components/blocks/ExerciseCard";
+import { Notice } from "../../components/ui/Notice";
+import type { ApiError } from "../../api/client";
+import { isApiError } from "../../api/client";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+
+function toApiError(e: unknown): ApiError {
+  if (isApiError(e)) return e; // już jest ApiError
+
+  // fetch przerwany → zwracamy neutralny
+  if (e instanceof DOMException && e.name === "AbortError") {
+    return { status: 0, message: "Aborted" };
+  }
+
+  // błąd jako string
+  if (typeof e === "string") {
+    return { status: 0, message: e };
+  }
+
+  // klasyczny Error albo obiekt z message
+  if (e && typeof e === "object" && "message" in (e as Record<string, unknown>)) {
+    const msg = (e as { message?: unknown }).message;
+    return {
+      status: 0,
+      message: typeof msg === "string" ? msg : "Wystąpił błąd",
+    };
+  }
+
+  // fallback – nieznany błąd
+  return { status: 0, message: "Wystąpił błąd" };
+}
 
 export default function ExercisesPage() {
   // filtry ui
@@ -24,9 +54,10 @@ export default function ExercisesPage() {
   const [items, setItems] = useState<ExerciseDto[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<ApiError | null>(null);
   const [page, setPage] = useState(1);
-  const pageSize = 10;
+  const pageSize = 12;
+
 
   useEffect(() => {
     let alive = true;    
@@ -70,8 +101,8 @@ export default function ExercisesPage() {
 
           setItems(res.items);
           setTotal(res.total);
-        } catch {
-          if (alive) setError("Nie udało się pobrać ćwiczeń");
+        } catch (e) {
+          if (alive) setError(toApiError(e));
         } finally {
           if (alive) setLoading(false);
         }
@@ -134,12 +165,20 @@ export default function ExercisesPage() {
         </div>
       </div>
 
-      {listsLoading && <div className="mb-4 text-sm text-muted-foreground">Loading filters…</div>}
-      {listsError && <div className="mb-4 text-sm text-red-600">Failed to load filters: {listsError}</div>}
+      {listsLoading && <Notice>Ładowanie filtrów…</Notice>}
+      {listsError && (
+        <Notice kind="error">Nie udało się wczytać filtrów. Spróbuj ponownie.</Notice>
+      )}
 
-      {/* Wyniki */}
-      {loading && <div className="mb-4 text-sm text-muted-foreground">Loading exercises…</div>}
-      {error && <div className="mb-4 text-sm text-red-600">{error}</div>}
+      {loading && <div className="grid place-items-center rounded-xl border border-dashed p-10 text-center text-sm text-muted-foreground">
+        Ładowanie ćwiczeń…
+      </div>}
+
+      {error && (
+        error && error.status === 429
+          ? <Notice kind="warn">Zbyt wiele zapytań. Odczekaj chwilę i spróbuj ponownie.</Notice>
+          : <Notice kind="error">Nie udało się pobrać ćwiczeń. {error.message && <span>({error.message})</span>}</Notice>
+      )}
 
       {!loading && !error && items.length === 0 && (
         <div className="grid place-items-center rounded-xl border border-dashed p-10 text-center text-sm text-muted-foreground">
@@ -159,27 +198,32 @@ export default function ExercisesPage() {
             ))}
           </div>
 
-          {/* Paginacja */}
-          <div className="mt-6 flex items-center justify-center gap-2">
+        <div className="mt-10 flex items-center justify-center gap-4">
+          {canPrev && (
             <button
-              disabled={!canPrev}
               onClick={() => setPage((p) => Math.max(1, p - 1))}
-              className="rounded-md border px-3 py-1 text-sm disabled:opacity-50"
+              className="flex h-10 w-10 items-center justify-center rounded-full border border-border bg-background text-foreground shadow-sm transition hover:bg-accent hover:text-accent-foreground"
+              aria-label="Poprzednia strona"
             >
-              Prev
+              <ChevronLeft className="h-5 w-5" />
             </button>
-            <span className="text-sm">
-              Page {page}
-              {total ? ` / ${Math.ceil(total / pageSize)}` : ""}
-            </span>
+          )}
+
+          <span className="flex min-w-[3rem] items-center justify-center rounded-full bg-muted/40 px-4 py-1.5 text-sm font-semibold text-foreground shadow-inner cursor-pointer">
+            {page} / {total ? Math.ceil(total / pageSize) : 1}
+          </span>
+
+          {canNext && (
             <button
-              disabled={!canNext}
               onClick={() => setPage((p) => p + 1)}
-              className="rounded-md border px-3 py-1 text-sm disabled:opacity-50"
+              className="flex h-10 w-10 items-center justify-center rounded-full border border-border bg-background text-foreground shadow-sm transition hover:bg-accent hover:text-accent-foreground cursor-pointer"
+              aria-label="Następna strona"
             >
-              Next
+              <ChevronRight className="h-5 w-5" />
             </button>
-          </div>
+          )}
+        </div>
+
         </>
       )}
     </main>
