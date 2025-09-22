@@ -8,21 +8,20 @@ import { Notice } from "../../components/ui/Notice";
 import type { ApiError } from "../../api/client";
 import { isApiError } from "../../api/client";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import ExerciseModal from "../../components/blocks/ExerciseModal";
 
 function toApiError(e: unknown): ApiError {
-  if (isApiError(e)) return e; // już jest ApiError
+  if (isApiError(e)) return e; 
 
-  // fetch przerwany → zwracamy neutralny
+
   if (e instanceof DOMException && e.name === "AbortError") {
     return { status: 0, message: "Aborted" };
   }
 
-  // błąd jako string
   if (typeof e === "string") {
     return { status: 0, message: e };
   }
 
-  // klasyczny Error albo obiekt z message
   if (e && typeof e === "object" && "message" in (e as Record<string, unknown>)) {
     const msg = (e as { message?: unknown }).message;
     return {
@@ -31,11 +30,13 @@ function toApiError(e: unknown): ApiError {
     };
   }
 
-  // fallback – nieznany błąd
   return { status: 0, message: "Wystąpił błąd" };
 }
 
 export default function ExercisesPage() {
+  const [open, setOpen] = useState(false);
+  const [selected, setSelected] = useState<ExerciseDto | null>(null);
+ 
   // filtry ui
   const [q, setQ] = useState("");
   const [muscle, setMuscle] = useState("");
@@ -193,10 +194,12 @@ export default function ExercisesPage() {
               <ExerciseCard
                 key={ex.id}
                 exercise={ex}
-                to={`/exercise/${ex.id}`} 
+                onClick={() => { setSelected(ex); setOpen(true); }}
               />
             ))}
           </div>
+          <ExerciseModal open={open} onOpenChange={setOpen} exercise={selected} />
+
 
         <div className="mt-10 flex items-center justify-center gap-4">
           {canPrev && (

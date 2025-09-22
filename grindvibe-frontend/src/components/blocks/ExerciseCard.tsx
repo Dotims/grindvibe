@@ -4,6 +4,7 @@ import { type ExerciseDto } from "../../api/exercises";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useMemo, useState } from "react";
+import { parseExerciseSteps } from "../../lib/utils";
 
 function thumbGradient(seed: string) {
   let hash = 0;
@@ -16,12 +17,15 @@ function thumbGradient(seed: string) {
 type Props = {
   exercise: ExerciseDto;
   to?: string;
+  onClick?: () => void;
 };
 
-export default function ExerciseCard({ exercise, to }: Props) {
+export default function ExerciseCard({ exercise, to, onClick }: Props) {
   const primary = exercise.primaryMuscles ?? [];
   const secondary = exercise.secondaryMuscles ?? [];
   const equipment = exercise.equipment ?? [];
+  const steps = parseExerciseSteps(exercise.description ?? null);
+  const MAX_STEPS_PREVIEW = 4;
 
   const bodyPartLabel: string | null =
     exercise.bodyPart?.trim() ??
@@ -57,13 +61,23 @@ export default function ExerciseCard({ exercise, to }: Props) {
       transition={{ type: "spring", stiffness: 350, damping: 24, mass: 0.6 }}
       className="relative"
     >
-      {to && (
-        <Link
-          to={to}
-          aria-label={`Open details of ${exercise.name}`}
-          className="absolute inset-0 z-10 rounded-3xl outline-none focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0"
-        />
+      {(to || onClick) && (
+        onClick ? (
+          <button
+            type="button"
+            onClick={onClick}
+            aria-label={`Otwórz podgląd: ${exercise.name}`}
+            className="absolute inset-0 z-10 rounded-3xl outline-none focus:outline-none focus:ring-0"
+          />
+        ) : (
+          <Link
+            to={to!}
+            aria-label={`Przejdź do szczegółów: ${exercise.name}`}
+            className="absolute inset-0 z-10 rounded-3xl outline-none focus:outline-none focus:ring-0"
+          />
+        )
       )}
+
 
       <Card className="relative overflow-hidden rounded-3xl border-0 bg-gradient-to-b from-white to-white/60 shadow-[0_10px_30px_-12px_rgba(0,0,0,0.25)] dark:from-zinc-900 dark:to-zinc-900/60 dark:shadow-[0_10px_30px_-12px_rgba(0,0,0,0.6)]">
         <CardContent className="p-0">
@@ -121,10 +135,27 @@ export default function ExerciseCard({ exercise, to }: Props) {
               {exercise.name}
             </h3>
 
-            {exercise.description && (
-              <p className="mt-1 line-clamp-2 text-[13px] text-muted-foreground/90">
-                {exercise.description}
-              </p>
+            {steps.length > 0 ? (
+              <div
+                className="mt-2 overflow-hidden"
+                style={{
+                  maxHeight: "60px",
+                  WebkitMaskImage: "linear-gradient(to bottom, black 75%, transparent)",
+                  maskImage: "linear-gradient(to bottom, black 75%, transparent)"
+                }}
+              >
+                <ol className="list-decimal list-inside space-y-1 text-[13px] text-muted-foreground/90">
+                  {steps.slice(0, MAX_STEPS_PREVIEW).map((s, i) => (
+                    <li key={i}>{s}</li>
+                  ))}
+                </ol>
+              </div>
+            ) : (
+              exercise.description && (
+                <p className="mt-1 line-clamp-3 text-[13px] text-muted-foreground/90">
+                  {exercise.description}
+                </p>
+              )
             )}
 
             <div className="mt-3 flex flex-wrap gap-1.5">
@@ -152,9 +183,9 @@ export default function ExerciseCard({ exercise, to }: Props) {
                 size="sm"
                 className="pointer-events-none select-none rounded-full border-0 bg-[color(display-p3_0.98_0.99_1)] text-[12px] font-semibold text-[color(display-p3_0.25_0.35_0.70)] shadow-[0_1px_0_0_rgba(0,0,0,0.04)]"
               >
-                Details
+                Szczegóły
               </Button>
-              <span className="text-[11px] text-muted-foreground/70">Tap card</span>
+              <span className="text-[11px] text-muted-foreground/70">Kliknij kartę</span>
             </div>
           </div>
         </CardContent>
