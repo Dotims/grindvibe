@@ -59,7 +59,7 @@ export default function ExerciseCard({ exercise, to, onClick }: Props) {
       initial={{ y: 0, opacity: 0.98 }}
       whileHover={{ y: -3, scale: 1.01 }}
       transition={{ type: "spring", stiffness: 350, damping: 24, mass: 0.6 }}
-      className="relative"
+      className="relative bg-[var(--gv-bg)] text-[var(--gv-text)]"
     >
       {(to || onClick) && (
         onClick ? (
@@ -79,13 +79,15 @@ export default function ExerciseCard({ exercise, to, onClick }: Props) {
       )}
 
 
-      <Card className="relative overflow-hidden rounded-3xl border-0 bg-gradient-to-b from-white to-white/60 shadow-[0_10px_30px_-12px_rgba(0,0,0,0.25)] dark:from-zinc-900 dark:to-zinc-900/60 dark:shadow-[0_10px_30px_-12px_rgba(0,0,0,0.6)]">
+      <Card className="relative overflow-hidden rounded-3xl border-0 bg-gradient-to-b
+                      from-[color:var(--gv-bg)] to-[color:color-mix(in_oklab,var(--gv-bg)_90%,#000_10%)]
+                      shadow-[0_10px_30px_-12px_rgba(0,0,0,0.25)] dark:shadow-[0_10px_30px_-12px_rgba(0,0,0,0.6)]">
         <CardContent className="p-0">
           <div
             className={[
               "relative w-full overflow-hidden",
               "aspect-[4/3] sm:aspect-[16/10] md:aspect-[16/9]",
-              "bg-[rgba(0,0,0,0.03)] dark:bg-zinc-800/40",
+              "bg-[color-mix(in_oklab,var(--gv-bg)_96%,#000_4%)]",
             ].join(" ")}
           >
             {hasImage ? (

@@ -43,12 +43,12 @@ export default function ExerciseDetail() {
 
       <section>
         <h2 className="font-semibold">Mięśnie główne</h2>
-        <p className="text-sm opacity-80">{data.primaryMuscle.join(", ") || "—"}</p>
+        <p className="text-sm opacity-80">{data.primaryMuscles.join(", ") || "—"}</p>
       </section>
 
       <section>
         <h2 className="font-semibold">Mięśnie pomocnicze</h2>
-        <p className="text-sm opacity-80">{data.secondaryMuscle.join(", ") || "—"}</p>
+        <p className="text-sm opacity-80">{data.secondaryMuscles.join(", ") || "—"}</p>
       </section>
 
       <section>

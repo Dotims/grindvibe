@@ -24,27 +24,32 @@ export default function ExerciseModal({ open, onOpenChange, exercise }: Props) {
   const instructions = exercise.instructions ?? [];
   const bodyPart = exercise.bodyPart ?? null;
 
-  const chipPrimary = "inline-flex items-center rounded-full bg-[color(display-p3_0.97_0.98_1)] px-2.5 py-0.5 text-[11px] font-medium text-[color(display-p3_0.25_0.35_0.70)]";
-  const chipSecondary = "inline-flex items-center rounded-full bg-transparent px-2.5 py-0.5 text-[11px] text-foreground/70 ring-1 ring-foreground/10";
+  const chipPrimary =
+  "inline-flex items-center rounded-full bg-secondary text-secondary-foreground " +
+  "px-2.5 py-0.5 text-[11px] font-medium";
+
+  const chipSecondary =
+    "inline-flex items-center rounded-full bg-transparent px-2.5 py-0.5 text-[11px] " +
+    "text-foreground/70 ring-1 ring-border";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         className="
           max-w-[min(96vw,1000px)] p-0 overflow-hidden rounded-2xl
-          bg-background shadow-2xl border
+          bg-card text-card-foreground border border-border shadow-2xl
           data-[state=open]:animate-in
-          supports-[backdrop-filter]:bg-background
+          supports-[backdrop-filter]:bg-card
         "
         aria-describedby={undefined}
       >
-        {/* HEADER */}
         <div className="relative px-6 pt-5 pb-3">
           <DialogTitle className="pr-10 text-xl font-semibold tracking-tight">
             {exercise.name}
           </DialogTitle>
           <DialogClose
-            className="absolute right-4 top-4 grid h-9 w-9 place-items-center rounded-full border bg-background/80 hover:bg-accent hover:text-accent-foreground transition"
+            className="absolute right-4 top-4 grid h-9 w-9 place-items-center rounded-full
+                      border border-border bg-background/80 text-foreground hover:bg-accent hover:text-accent-foreground transition"
             aria-label="Zamknij"
           >
             <X className="h-5 w-5" />
@@ -58,14 +63,14 @@ export default function ExerciseModal({ open, onOpenChange, exercise }: Props) {
               {exercise.videoUrl ? (
                 <video
                   src={exercise.videoUrl}
-                  className="absolute inset-0 h-full w-full object-contain"
+                  className="absolute inset-0 h-full w-full object-contain bg-[var(--gv-bg)]"
                   autoPlay muted loop playsInline
                 />
               ) : exercise.imageUrl ? (
                 <img
                   src={exercise.imageUrl}
                   alt={exercise.name}
-                  className="absolute inset-0 h-full w-full object-contain"
+                  className="absolute inset-0 h-full w-full object-contain bg-[var(--gv-bg)]"
                   loading="lazy"
                   fetchPriority="low"
                 />

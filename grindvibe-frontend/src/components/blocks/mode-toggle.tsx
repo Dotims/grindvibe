@@ -1,4 +1,3 @@
-// src/components/blocks/mode-toggle.tsx
 import { Moon, Sun, Laptop } from "lucide-react"
 import { Button } from "../ui/button"
 import {

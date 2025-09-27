@@ -21,22 +21,10 @@ export default function Footer() {
     <footer
       className={cn(
         "mt-10 w-full border-t border-[var(--gv-border)]",
-        // półprzezroczyste tło + blur (jak header), ale subtelniej
         "bg-[rgb(var(--gv-header-bg)/0.66)] backdrop-blur-md supports-[backdrop-filter]:bg-[rgb(var(--gv-header-bg)/0.52)]"
       )}
     >
-      {/* cienka linia akcentowa */}
-      <div
-        className="h-[2px] w-full"
-        style={{
-          background:
-            "linear-gradient(90deg, transparent, var(--gv-accent), transparent)",
-          opacity: 0.35,
-        }}
-      />
-
       <div className="mx-auto max-w-6xl px-4 py-8 sm:py-10">
-        {/* Rząd 1: główna nawigacja */}
         <nav className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-sm sm:gap-x-5">
           {PRIMARY.map((item, i) => (
             <span key={item.to} className="inline-flex items-center">
@@ -61,7 +49,6 @@ export default function Footer() {
           ))}
         </nav>
 
-        {/* Rząd 2: linki drugorzędne */}
         <nav className="mt-4 flex flex-wrap items-center justify-center gap-x-3 gap-y-2 text-[13px]">
           {SECONDARY.map((item, i) => (
             <span key={item.to} className="inline-flex items-center">
@@ -84,7 +71,6 @@ export default function Footer() {
           ))}
         </nav>
 
-        {/* Rząd 3: copyright */}
         <div className="mt-6 text-center">
           <p className="text-xs text-[var(--gv-text-soft)]">
             © {year} GrindVibe. Wszelkie prawa zastrzeżone.
