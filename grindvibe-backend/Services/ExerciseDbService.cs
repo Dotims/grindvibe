@@ -1,8 +1,9 @@
+using System.Net;
+using System.Net.Http.Json;
 using System.Text.Json;
 using System.Web;
+using System.Linq;
 using grindvibe_backend.Models;
-using System.Net;
-using SQLitePCL;
 
 namespace grindvibe_backend.Services
 {
@@ -17,94 +18,52 @@ namespace grindvibe_backend.Services
             _log = log;
         }
 
-        // search
+        // list / search
         public async Task<PagedResponse<ExerciseDto>> SearchAsync(
             string? q, int page, int pageSize, CancellationToken ct = default)
         {
-            var offset = Math.Max(0, (page - 1) * pageSize);
-            var limit  = Math.Clamp(pageSize, 1, 25);
+            var limit = Math.Clamp(pageSize, 1, 25);
 
-            string url;
+            var qs = HttpUtility.ParseQueryString(string.Empty);
+            qs["limit"] = limit.ToString();
+            if (!string.IsNullOrWhiteSpace(q))
+                qs["name"] = q.Trim();
 
-            if (string.IsNullOrWhiteSpace(q))
-            {
-                url = $"exercises?offset={offset}&limit={limit}";
-            }
-            else
-            {
-                var qs = HttpUtility.ParseQueryString(string.Empty);
-                qs["q"] = string.IsNullOrWhiteSpace(q) ? "all" : q;
-                qs["offset"] = offset.ToString();
-                qs["limit"] = limit.ToString();
-                qs["threshold"] = "0.3";
-                url = $"exercises/search?{qs}";
-            }
+            var url = $"exercises?{qs}";
+            _log.LogInformation("UPSTREAM → {Url}", url);
 
-            var response = await _http.GetFromJsonAsync<ExerciseDbResponse>(url, ct);
-
-            if (response is null)
+            var resp = await _http.GetFromJsonAsync<ExercisesResponse>(url, ct);
+            if (resp is null || resp.data is null)
                 return new PagedResponse<ExerciseDto>();
 
-            var items = response.data.Select(e =>
-            {
-                var bodyPart =
-                    !string.IsNullOrWhiteSpace(e.bodyPart)
-                        ? e.bodyPart.Trim()
-                        : (e.bodyParts is not null
-                            ? e.bodyParts.FirstOrDefault(s => !string.IsNullOrWhiteSpace(s))?.Trim()
-                            : null);
-
-                return new ExerciseDto
-                {
-                    Id = e.exerciseId,
-                    Name = e.name,
-                    PrimaryMuscles   = e.targetMuscles    ?? new List<string>(),
-                    SecondaryMuscles = e.secondaryMuscles ?? new List<string>(),
-                    Equipment        = e.equipments       ?? new List<string>(),
-                    ImageUrl    = e.gifUrl,
-                    Description = e.instructions is not null ? string.Join(" ", e.instructions) : null,
-                    BodyPart    = bodyPart    
-                };
-            }).ToList();
-
+            var items = resp.data.Select(MapToDto).ToList();
 
             return new PagedResponse<ExerciseDto>
             {
-                Page     = response.metadata.currentPage,
+                Page     = 1,
                 PageSize = limit,
-                Total    = response.metadata.totalExercises,
+                Total    = resp.meta?.total ?? items.Count,
                 Items    = items
             };
         }
 
-        // lists
+        // dictionary list
         public async Task<List<string>> GetAllBodypartsAsync(CancellationToken ct = default)
         {
-            var json = await GetRawAsync("bodyparts", ct);             
-            return ParseNames(json);                                 
+            var json = await GetRawAsync("bodyparts", ct);
+            return ParseNames(json);
         }
 
         public async Task<List<string>> GetAllEquipmentsAsync(CancellationToken ct = default)
         {
-            var json = await GetRawAsync("equipments", ct);           
-            return ParseNames(json);                                     
+            var json = await GetRawAsync("equipments", ct);
+            return ParseNames(json);
         }
 
-
-        // pobieranie surowego JSON-a z endpointu
-        private async Task<string> GetRawAsync(string relativeUrl, CancellationToken ct)
-        {
-            var resp = await _http.GetAsync(relativeUrl, ct);
-            var body = await resp.Content.ReadAsStringAsync(ct);
-
-
-            resp.EnsureSuccessStatusCode();
-            return body;
-        }
-
+        // description 
         public async Task<ExerciseDto?> GetByIdAsync(string id, CancellationToken ct = default)
         {
-            var url = $"exercises/{id}"; 
+            var url = $"exercises/{id}";
             using var resp = await _http.GetAsync(url, ct);
 
             if (resp.StatusCode == HttpStatusCode.NotFound)
@@ -120,11 +79,16 @@ namespace grindvibe_backend.Services
 
             var dto = new ExerciseDto
             {
-                Id = data.GetProperty("exerciseId").GetString() ?? id,
+                Id   = data.GetProperty("exerciseId").GetString() ?? id,
                 Name = data.GetProperty("name").GetString() ?? "",
 
-                ImageUrl = data.TryGetProperty("gifUrl", out var gif)
-                    ? gif.GetString()
+                // v2: imageUrl (nie gifUrl)
+                ImageUrl = data.TryGetProperty("imageUrl", out var img)
+                    ? img.GetString()
+                    : null,
+
+                VideoUrl = data.TryGetProperty("videoUrl", out var vid)
+                    ? vid.GetString()
                     : null,
 
                 PrimaryMuscles = data.TryGetProperty("targetMuscles", out var tm)
@@ -148,158 +112,98 @@ namespace grindvibe_backend.Services
                         .ToList()
                     : new List<string>(),
 
-                Description = data.TryGetProperty("instructions", out var instr)
-                    ? string.Join(" ",
-                        instr.EnumerateArray()
-                            .Select(x => x.GetString() ?? "")
-                            .Where(x => !string.IsNullOrWhiteSpace(x)))
+                Description = data.TryGetProperty("overview", out var ov)
+                    ? ov.GetString()
                     : null,
-                    
-                BodyPart = data.TryGetProperty("bodyParts", out var bodyPartsString) && bodyPartsString.ValueKind == JsonValueKind.Array
-                    ? bodyPartsString.EnumerateArray()
+
+                instructions = data.TryGetProperty("instructions", out var instr)
+                    ? instr.EnumerateArray()
                         .Select(x => x.GetString() ?? "")
-                        .FirstOrDefault(s => !string.IsNullOrWhiteSpace(s))?
-                        .Trim()
-                    : (data.TryGetProperty("bodyPart", out var bodyPartsString1) && bodyPartsString1.ValueKind == JsonValueKind.String
-                        ? (bodyPartsString1.GetString() ?? "").Trim()
-                        : null)
+                        .Where(x => !string.IsNullOrWhiteSpace(x))
+                        .ToList()
+                    : null,
+
+                BodyPart =
+                    data.TryGetProperty("bodyParts", out var bps) && bps.ValueKind == JsonValueKind.Array
+                        ? bps.EnumerateArray()
+                              .Select(x => x.GetString() ?? "")
+                              .FirstOrDefault(s => !string.IsNullOrWhiteSpace(s))?
+                              .Trim()
+                        : (data.TryGetProperty("bodyPart", out var bp) && bp.ValueKind == JsonValueKind.String
+                            ? (bp.GetString() ?? "").Trim()
+                            : null)
             };
 
             return dto;
         }
 
+        //  filtr: body part
         public async Task<PagedResponse<ExerciseDto>> GetByBodyPartAsync(
             string bodyPart, int page, int pageSize, CancellationToken ct = default)
         {
-            var offset = Math.Max(0, (page - 1) * pageSize);
-            var limit  = Math.Clamp(pageSize, 1, 25);
+            var limit = Math.Clamp(pageSize, 1, 25);
+            var bp = (bodyPart ?? string.Empty).Trim();
 
-            var bpRaw = (bodyPart ?? string.Empty).Trim();
-            var bp    = Uri.EscapeDataString(bpRaw);
+            var qs = HttpUtility.ParseQueryString(string.Empty);
+            qs["limit"] = limit.ToString();
+            if (!string.IsNullOrWhiteSpace(bp))
+                qs["bodyParts"] = bp;
 
-            var candidates = new[]
-            {
-                $"exercises/bodyPart/{bp}?offset={offset}&limit={limit}",
-                $"exercises/bodypart/{bp}?offset={offset}&limit={limit}",
-            };
+            var url = $"exercises?{qs}";
+            _log.LogInformation("UPSTREAM → {Url}", url);
 
-            foreach (var url in candidates)
-            {
-                try
-                {
-                    using var resp = await _http.GetAsync(url, ct);
+            var resp = await _http.GetFromJsonAsync<ExercisesResponse>(url, ct);
+            if (resp is null || resp.data is null)
+                return new PagedResponse<ExerciseDto>();
 
-                    if (resp.IsSuccessStatusCode)
-                    {
-                        var stream   = await resp.Content.ReadAsStreamAsync(ct);
-                        var response = await System.Text.Json.JsonSerializer
-                            .DeserializeAsync<ExerciseDbResponse>(stream, cancellationToken: ct);
+            var items = resp.data.Select(MapToDto).ToList();
 
-                        if (response is null)
-                            return new PagedResponse<ExerciseDto>();
-
-                        var items = response.data.Select(e =>
-                        {
-                            var mappedBodyPart =
-                                !string.IsNullOrWhiteSpace(e.bodyPart)
-                                    ? e.bodyPart.Trim()
-                                    : (e.bodyParts is not null
-                                        ? e.bodyParts.FirstOrDefault(s => !string.IsNullOrWhiteSpace(s))?.Trim()
-                                        : null);
-
-                            return new ExerciseDto
-                            {
-                                Id                = e.exerciseId,
-                                Name              = e.name,
-                                PrimaryMuscles    = e.targetMuscles    ?? new List<string>(),
-                                SecondaryMuscles  = e.secondaryMuscles ?? new List<string>(),
-                                Equipment         = e.equipments       ?? new List<string>(),
-                                ImageUrl          = e.gifUrl,
-                                Description       = e.instructions is not null ? string.Join(" ", e.instructions) : null,
-                                BodyPart          = mappedBodyPart
-                            };
-                        }).ToList();
-
-                        return new PagedResponse<ExerciseDto>
-                        {
-                            Page     = response.metadata.currentPage,
-                            PageSize = limit,
-                            Total    = response.metadata.totalExercises,
-                            Items    = items
-                        };
-                    }
-
-                    if (resp.StatusCode == System.Net.HttpStatusCode.NotFound)
-                    {
-                        Console.WriteLine($"[GetByBodyPartAsync] 404 for '{url}' (value='{bpRaw}') — trying next candidate…");
-                        continue;
-                    }
-
-                    resp.EnsureSuccessStatusCode();
-                }
-                catch (TaskCanceledException) when (ct.IsCancellationRequested)
-                {
-                    throw;
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"[GetByBodyPartAsync] Exception for '{url}': {ex.Message}");
-                }
-            }
-
-            Console.WriteLine($"[GetByBodyPartAsync] No matching endpoint for bodyPart='{bpRaw}' (tried bodyPart/bodypart). Returning empty page.");
             return new PagedResponse<ExerciseDto>
             {
-                Page     = page,
+                Page     = 1,
                 PageSize = limit,
-                Total    = 0,
-                Items    = new List<ExerciseDto>()
+                Total    = resp.meta?.total ?? items.Count,
+                Items    = items
             };
         }
 
-
-        public async Task<PagedResponse<ExerciseDto>> GetByEquipmentAsync(string equipment, int page, int pageSize, CancellationToken ct = default)
+        // filtr: equipment
+        public async Task<PagedResponse<ExerciseDto>> GetByEquipmentAsync(
+            string equipment, int page, int pageSize, CancellationToken ct = default)
         {
-            var offset = Math.Max(0, (page - 1) * pageSize);
-            var limit  = Math.Clamp(pageSize, 1, 25);
+            var limit = Math.Clamp(pageSize, 1, 25);
+            var eq = (equipment ?? string.Empty).Trim();
 
-            var eq = Uri.EscapeDataString((equipment ?? "").Trim().ToLowerInvariant());
-            var url = $"exercises/equipment/{eq}?offset={offset}&limit={limit}";
+            var qs = HttpUtility.ParseQueryString(string.Empty);
+            qs["limit"] = limit.ToString();
+            if (!string.IsNullOrWhiteSpace(eq))
+                qs["equipments"] = eq;
 
-            var response = await _http.GetFromJsonAsync<ExerciseDbResponse>(url, ct);
+            var url = $"exercises?{qs}";
+            _log.LogInformation("UPSTREAM → {Url}", url);
 
-            if (response is null)
+            var resp = await _http.GetFromJsonAsync<ExercisesResponse>(url, ct);
+            if (resp is null || resp.data is null)
                 return new PagedResponse<ExerciseDto>();
 
-            var items = response.data.Select(e =>
-            {
-                var mappedBodyPart =
-                    !string.IsNullOrWhiteSpace(e.bodyPart)
-                        ? e.bodyPart.Trim()
-                        : (e.bodyParts is not null
-                            ? e.bodyParts.FirstOrDefault(s => !string.IsNullOrWhiteSpace(s))?.Trim()
-                            : null);
-
-                return new ExerciseDto
-                {
-                    Id = e.exerciseId,
-                    Name = e.name,
-                    PrimaryMuscles   = e.targetMuscles    ?? new List<string>(),
-                    SecondaryMuscles = e.secondaryMuscles ?? new List<string>(),
-                    Equipment        = e.equipments       ?? new List<string>(),
-                    ImageUrl    = e.gifUrl,
-                    Description = e.instructions is not null ? string.Join(" ", e.instructions) : null,
-                    BodyPart    = mappedBodyPart
-                };
-            }).ToList();
+            var items = resp.data.Select(MapToDto).ToList();
 
             return new PagedResponse<ExerciseDto>
             {
-                Page     = response.metadata.currentPage,
+                Page     = 1,
                 PageSize = limit,
-                Total    = response.metadata.totalExercises,
+                Total    = resp.meta?.total ?? items.Count,
                 Items    = items
             };
+        }
+
+        // helpers
+        private async Task<string> GetRawAsync(string relativeUrl, CancellationToken ct)
+        {
+            using var resp = await _http.GetAsync(relativeUrl, ct);
+            if (resp.StatusCode == HttpStatusCode.NotFound) return "[]";
+            resp.EnsureSuccessStatusCode();
+            return await resp.Content.ReadAsStringAsync(ct);
         }
 
         private static List<string> ParseNames(string json)
@@ -308,54 +212,72 @@ namespace grindvibe_backend.Services
             var root = doc.RootElement;
 
             if (root.ValueKind == JsonValueKind.Array)
-                return root.EnumerateArray().Select(e => e.GetString() ?? "").Where(s => !string.IsNullOrWhiteSpace(s)).ToList();
+                return root.EnumerateArray()
+                           .Select(e => e.GetString() ?? "")
+                           .Where(s => !string.IsNullOrWhiteSpace(s))
+                           .ToList();
 
             if (root.ValueKind == JsonValueKind.Object && root.TryGetProperty("data", out var dataEl))
             {
                 if (dataEl.ValueKind == JsonValueKind.Array)
                 {
-                    if (dataEl.EnumerateArray().FirstOrDefault().ValueKind == JsonValueKind.String)
-                        return dataEl.EnumerateArray().Select(e => e.GetString() ?? "").Where(s => !string.IsNullOrWhiteSpace(s)).ToList();
+                    var first = dataEl.EnumerateArray().FirstOrDefault();
+                    if (first.ValueKind == JsonValueKind.String)
+                        return dataEl.EnumerateArray()
+                                     .Select(e => e.GetString() ?? "")
+                                     .Where(s => !string.IsNullOrWhiteSpace(s))
+                                     .ToList();
 
                     return dataEl.EnumerateArray()
-                        .Select(e => e.TryGetProperty("name", out var n) ? n.GetString() : null)
-                        .Where(s => !string.IsNullOrWhiteSpace(s))
-                        .Cast<string>()
-                        .ToList();
+                                 .Select(e => e.TryGetProperty("name", out var n) ? n.GetString() : null)
+                                 .Where(s => !string.IsNullOrWhiteSpace(s))
+                                 .Cast<string>()
+                                 .ToList();
                 }
             }
 
             throw new JsonException("Unexpected JSON shape for names list.");
         }
+
+        private static ExerciseDto MapToDto(ExerciseItem e) => new ExerciseDto
+        {
+            Id               = e.exerciseId,
+            Name             = e.name,
+            Equipment        = e.equipments ?? new(),
+            BodyPart         = e.bodyParts?.FirstOrDefault(),
+            PrimaryMuscles   = e.targetMuscles ?? new(),
+            SecondaryMuscles = e.secondaryMuscles ?? new(),
+            ImageUrl         = e.imageUrl,
+            Description      = null
+        };
     }
 
-    // odpowiedź z ExerciseDB
-    public class ExerciseDbResponse
+    // models response from external api (list)
+    public class ExercisesResponse
     {
         public bool success { get; set; }
-        public Metadata metadata { get; set; } = new();
-        public List<ExerciseDbItem> data { get; set; } = new();
+        public Meta? meta { get; set; }
+        public List<ExerciseItem> data { get; set; } = new();
     }
 
-    public class Metadata
+    public class Meta
     {
-        public int totalExercises { get; set; }
-        public int totalPages { get; set; }
-        public int currentPage { get; set; }
+        public int total { get; set; }
+        public bool hasNextPage { get; set; }
+        public bool hasPreviousPage { get; set; }
+        public string? nextCursor { get; set; }
+        public string? previousCursor { get; set; }
     }
 
-    // pojedyncze cwiczenie z ExerciseDB
-    public class ExerciseDbItem
+    public class ExerciseItem
     {
         public string exerciseId { get; set; } = default!;
         public string name { get; set; } = default!;
-        public string gifUrl { get; set; } = default!;
+        public List<string>? equipments { get; set; }
+        public List<string>? bodyParts { get; set; }
+        public string? exerciseType { get; set; }
         public List<string>? targetMuscles { get; set; }
         public List<string>? secondaryMuscles { get; set; }
-        public List<string>? equipments { get; set; }
-        public string? bodyPart { get; set; }
-        public List<string>? bodyParts { get; set; }
-        public List<string>? instructions { get; set; }
+        public string? imageUrl { get; set; }
     }
-
 }
