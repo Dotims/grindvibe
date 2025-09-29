@@ -4,17 +4,47 @@ import { Search } from "lucide-react";
 import SimpleSelect from "../../components/blocks/SimpleSelect";
 import { type ExerciseDto, getExerciseLists, searchExercises } from "../../api/exercises";
 import ExerciseCard from "../../components/blocks/ExerciseCard";
+import { Notice } from "../../components/ui/Notice";
+import type { ApiError } from "../../api/client";
+import { isApiError } from "../../api/client";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import ExerciseModal from "../../components/blocks/ExerciseModal";
+
+import { useAppDispatch, useAppSelector } from "../../store/hooks";
+import { selectExercisesFilters, selectQueryParams } from "../../features/exercises/exerciseFilters.selectors";
+import { setEquipment, setMuscle, setPage, setQ } from "../../features/exercises/exercisesFiltersSlice";
+
+
+function toApiError(e: unknown): ApiError {
+  if (isApiError(e)) return e; 
+
+
+  if (e instanceof DOMException && e.name === "AbortError") {
+    return { status: 0, message: "Aborted" };
+  }
+
+  if (typeof e === "string") {
+    return { status: 0, message: e };
+  }
+
+  if (e && typeof e === "object" && "message" in (e as Record<string, unknown>)) {
+    const msg = (e as { message?: unknown }).message;
+    return {
+      status: 0,
+      message: typeof msg === "string" ? msg : "Wystąpił błąd",
+    };
+  }
+
+  return { status: 0, message: "Wystąpił błąd" };
+}
 
 export default function ExercisesPage() {
-  // filtry ui
-  const [q, setQ] = useState("");
-  const [muscle, setMuscle] = useState("");
-  const [equipment, setEquipment] = useState("");
-
+  const [open, setOpen] = useState(false);
+  const [selected, setSelected] = useState<ExerciseDto | null>(null);
+ 
   // opcje do dropdownow
   const [muscleOptions, setMuscleOptions] = useState<string[]>([]);
   const [equipmentOptions, setEquipmentOptions] = useState<string[]>([]);
-
 
   // stany ux dla fetchowania list
   const [listsLoading, setListsLoading] = useState(true);
@@ -24,9 +54,14 @@ export default function ExercisesPage() {
   const [items, setItems] = useState<ExerciseDto[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [page, setPage] = useState(1);
-  const pageSize = 10;
+  const [error, setError] = useState<ApiError | null>(null);
+
+  const dispatch = useAppDispatch();
+  const filters = useAppSelector(selectExercisesFilters); 
+  const query   = useAppSelector(selectQueryParams);  
+
+  const canPrev = filters.page > 1;
+  const canNext = items.length === filters.pageSize && filters.page * filters.pageSize < total;
 
   useEffect(() => {
     let alive = true;    
@@ -48,30 +83,25 @@ export default function ExercisesPage() {
     return () => { alive = false };
   }, []);
 
+
   useEffect(() => {
     let alive = true;
-
-    console.log("[ExercisesPage] state ->", { q, page, muscle, equipment });
+    console.log("[ExercisesPage] query ->", query);
 
     const t = setTimeout(() => {
       (async () => {
         setLoading(true);
         setError(null);
         try {
-          const res = await searchExercises({
-            q,
-            page,
-            pageSize,
-            muscle: muscle ? [muscle] : [],
-            equipment: equipment ? [equipment] : []
-          });
+          const res = await searchExercises(query);
 
           if (!alive) return;
 
           setItems(res.items);
           setTotal(res.total);
-        } catch {
-          if (alive) setError("Nie udało się pobrać ćwiczeń");
+          console.log("[EXERCISES] received:", res.items?.length ?? 0, "total:", res.total);
+        } catch (e) {
+          if (alive) setError(toApiError(e));
         } finally {
           if (alive) setLoading(false);
         }
@@ -82,13 +112,11 @@ export default function ExercisesPage() {
       alive = false;
       clearTimeout(t);
     };
-  }, [q, page, muscle, equipment]);
+  }, [query]);
 
-  const canPrev = page > 1;
-  const canNext = items.length === pageSize && page * pageSize < total;
 
   return (
-    <main className="mx-auto w-full max-w-6xl px-4 py-10">
+    <main className="mx-auto w-full max-w-6xl px-4 py-10 bg-[var(--gv-bg)] text-[var(--gv-text)]">
       <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Exercises</h1>
@@ -103,43 +131,42 @@ export default function ExercisesPage() {
             <Search className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 opacity-70" />
             <Input
               placeholder="Search by name (EN)…"
-              value={q}
-              onChange={(e) => {
-                setPage(1); 
-                setQ(e.target.value);
-              }}
+              value={filters.q}
+              onChange={(e) => dispatch(setQ(e.target.value))}
               className="h-10 pl-8"
             />
           </div>
 
           <SimpleSelect
-            value={muscle}
-            onChange={(v) => {
-              setPage(1); 
-              setMuscle(v);
-            }}
+            value={filters.muscle}
+            onChange={(v) => dispatch(setMuscle(v))}
             options={muscleOptions}
             placeholder="Body part"
           />
 
           <SimpleSelect
-            value={equipment}
-            onChange={(v) => {
-              setPage(1);
-              setEquipment(v);
-            }}
+            value={filters.equipment}
+            onChange={(v) => { dispatch(setEquipment(v))}}
             options={equipmentOptions}
             placeholder="Equipment"
           />
         </div>
       </div>
 
-      {listsLoading && <div className="mb-4 text-sm text-muted-foreground">Loading filters…</div>}
-      {listsError && <div className="mb-4 text-sm text-red-600">Failed to load filters: {listsError}</div>}
+      {listsLoading && <Notice>Ładowanie filtrów…</Notice>}
+      {listsError && (
+        <Notice kind="error">Nie udało się wczytać filtrów. Spróbuj ponownie.</Notice>
+      )}
 
-      {/* Wyniki */}
-      {loading && <div className="mb-4 text-sm text-muted-foreground">Loading exercises…</div>}
-      {error && <div className="mb-4 text-sm text-red-600">{error}</div>}
+      {loading && <div className="grid place-items-center rounded-xl border border-dashed p-10 text-center text-sm text-muted-foreground">
+        Ładowanie ćwiczeń…
+      </div>}
+
+      {error && (
+        error && error.status === 429
+          ? <Notice kind="warn">Zbyt wiele zapytań. Odczekaj chwilę i spróbuj ponownie.</Notice>
+          : <Notice kind="error">Nie udało się pobrać ćwiczeń. {error.message && <span>({error.message})</span>}</Notice>
+      )}
 
       {!loading && !error && items.length === 0 && (
         <div className="grid place-items-center rounded-xl border border-dashed p-10 text-center text-sm text-muted-foreground">
@@ -154,32 +181,40 @@ export default function ExercisesPage() {
               <ExerciseCard
                 key={ex.id}
                 exercise={ex}
-                to={`/exercise/${ex.id}`} 
+                onClick={() => { setSelected(ex); setOpen(true); }}
               />
             ))}
           </div>
+          <ExerciseModal open={open} onOpenChange={setOpen} exercise={selected} />
 
-          {/* Paginacja */}
-          <div className="mt-6 flex items-center justify-center gap-2">
+
+        <div className="mt-10 flex items-center justify-center gap-4">
+          
+          {canPrev && (
             <button
-              disabled={!canPrev}
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              className="rounded-md border px-3 py-1 text-sm disabled:opacity-50"
+              onClick={() => dispatch(setPage(filters.page - 1))}
+              className="flex h-10 w-10 items-center justify-center rounded-full border border-border bg-background text-foreground shadow-sm transition hover:bg-accent hover:text-accent-foreground"
+              aria-label="Poprzednia strona"
             >
-              Prev
+              <ChevronLeft className="h-5 w-5" />
             </button>
-            <span className="text-sm">
-              Page {page}
-              {total ? ` / ${Math.ceil(total / pageSize)}` : ""}
-            </span>
+          )}
+
+          <span className="flex min-w-[3rem] items-center justify-center rounded-full bg-muted/40 px-4 py-1.5 text-sm font-semibold text-foreground shadow-inner cursor-pointer">
+            {filters.page} / {total ? Math.ceil(total / filters.pageSize) : 1}
+          </span>
+
+          {canNext && (
             <button
-              disabled={!canNext}
-              onClick={() => setPage((p) => p + 1)}
-              className="rounded-md border px-3 py-1 text-sm disabled:opacity-50"
+              onClick={() => dispatch(setPage(filters.page + 1))}
+              className="flex h-10 w-10 items-center justify-center rounded-full border border-border bg-background text-foreground shadow-sm transition hover:bg-accent hover:text-accent-foreground cursor-pointer"
+              aria-label="Następna strona"
             >
-              Next
+              <ChevronRight className="h-5 w-5" />
             </button>
-          </div>
+          )}
+        </div>
+
         </>
       )}
     </main>

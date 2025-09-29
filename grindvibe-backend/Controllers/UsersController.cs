@@ -36,12 +36,13 @@ public class UsersController : ControllerBase
     [HttpPost("me/avatar")]
     [Authorize]
     [RequestSizeLimit(5 * 1024 * 1024)]
-    public async Task<IActionResult> UploadAvatar([FromForm] IFormFile file)
+    [Consumes("multipart/form-data")] 
+    public async Task<IActionResult> UploadAvatar(IFormFile file)
     {
         if (file is null || file.Length == 0) return BadRequest("Brak pliku.");
 
         var allowedMime = new[] { "image/jpeg", "image/png", "image/webp" };
-        var allowedExt  = new[] { ".jpg", ".jpeg", ".png", ".webp" };
+        var allowedExt = new[] { ".jpg", ".jpeg", ".png", ".webp" };
         if (!allowedMime.Contains(file.ContentType)) return BadRequest("Dozwolone: JPG, PNG, WEBP.");
 
         var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
@@ -52,17 +53,15 @@ public class UsersController : ControllerBase
         var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == userId.Value);
         if (user is null) return Unauthorized();
 
-        // --- KLUCZOWY FRAGMENT: BEZPIECZNE WYZNACZENIE WEBROOT ---
         var webRoot = _env.WebRootPath;
         if (string.IsNullOrWhiteSpace(webRoot))
         {
-            // Fallback do katalogu zawartości aplikacji (tam, gdzie jest .csproj)
             webRoot = Path.Combine(_env.ContentRootPath, "wwwroot");
         }
-        Directory.CreateDirectory(webRoot); // utwórz wwwroot jeśli go nie ma
+        Directory.CreateDirectory(webRoot);
 
         var avatarsPath = Path.Combine(webRoot, "avatars");
-        Directory.CreateDirectory(avatarsPath); // i avatars/ jeśli nie ma
+        Directory.CreateDirectory(avatarsPath);
 
         var fileName = $"{Guid.NewGuid()}{ext}";
         var physical = Path.Combine(avatarsPath, fileName);
@@ -70,7 +69,7 @@ public class UsersController : ControllerBase
         using (var stream = System.IO.File.Create(physical))
             await file.CopyToAsync(stream);
 
-        // Usuń poprzedni lokalny avatar (opcjonalnie)
+        // remove old avatar
         if (!string.IsNullOrWhiteSpace(user.AvatarUrl) && user.AvatarUrl.Contains("/avatars/"))
         {
             try

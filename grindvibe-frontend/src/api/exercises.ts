@@ -6,16 +6,18 @@ export function getExerciseLists(): Promise<ExerciseLists> {
     return api<ExerciseLists>("/exercises/lists");
 }
 
-export type ExerciseDto = {
-    id: string;
-    name: string;
-    imageUrl?: string;
-    primaryMuscle: string[];
-    secondaryMuscle: string[];
-    equipment: string[];
-    description?: string | null;
-    videoUrl?: string | null; 
-    bodyPart?: string | null;
+export interface ExerciseDto {
+  id: string;
+  name: string;
+  primaryMuscles: string[];
+  secondaryMuscles: string[];
+  equipment: string[];
+  difficulty?: string | null;
+  imageUrl?: string;
+  videoUrl?: string | null;
+  description?: string | null;
+  bodyPart?: string | null;
+  instructions?: string[] | null;
 }
 
 export type PagedResult<T> = {
@@ -38,7 +40,7 @@ export function searchExercises(
 ): Promise<PagedResult<ExerciseDto>> {
     const q = (params?.q ?? "").trim();
     const page = params?.page ?? 1;
-    const pageSize = params?.pageSize ?? 10;
+    const pageSize = params?.pageSize ?? 12;
 
     const qs = new URLSearchParams({ 
         page: String(page),

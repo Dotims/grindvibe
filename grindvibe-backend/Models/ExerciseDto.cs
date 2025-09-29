@@ -7,11 +7,11 @@ namespace grindvibe_backend.Models
         public List<string> PrimaryMuscles { get; set; } = new();
         public List<string> SecondaryMuscles { get; set; } = new();
         public List<string> Equipment { get; set; } = new();
+        public string? BodyPart { get; set; }
         public string? Difficulty { get; set; }
         public string? ImageUrl { get; set; }
         public string? VideoUrl { get; set; }
         public string? Description { get; set; }
-        public string? BodyPart { get; set; }
         public List<string>? instructions { get; set; }
     }
 

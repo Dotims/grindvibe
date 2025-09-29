@@ -41,7 +41,7 @@ public class ExercisesController : ControllerBase
     public async Task<IActionResult> Search(
         [FromQuery] string? q,
         [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 10,
+        [FromQuery] int pageSize = 12,
         [FromQuery] string[]? muscles = null,
         [FromQuery] string[]? equipment = null,
         CancellationToken ct = default)
