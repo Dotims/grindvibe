@@ -8,6 +8,7 @@ using Microsoft.IdentityModel.Tokens;
 using grindvibe_backend.Config;
 using grindvibe_backend.Helpers;
 using grindvibe_backend.Services;
+using System.Net.Http.Headers;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -67,7 +68,8 @@ builder.Services.AddSwaggerGen();
 
 builder.Services.AddHttpClient<IExerciseService, ExerciseDbService>(c =>
 {
-    c.BaseAddress = new Uri("https://www.exercisedb.dev/api/v1/");
+    c.BaseAddress = new Uri("https://v2.exercisedb.dev/api/v1/"); 
+    c.Timeout = TimeSpan.FromSeconds(20);
 });
 
 var app = builder.Build();

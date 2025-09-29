@@ -1,4 +1,4 @@
-const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:5257";
+const API_URL = import.meta.env.VITE_API_URL ?? "https://localhost:7093";
 
 export type ApiError = {
   status: number;
@@ -38,8 +38,11 @@ export default async function api<T>(
   const headers = new Headers(baseHeaders);
   if (options.headers) {
     const extra = new Headers(options.headers as HeadersInit);
-    extra.forEach((v, k) => headers.set(k, v)); // allow override
+    extra.forEach((v, k) => headers.set(k, v)); 
   }
+
+  const url = `${API_URL}${path}`;
+  console.info("[API] =>", url);
 
   const res = await fetch(`${API_URL}${path}`, { ...options, headers });
 

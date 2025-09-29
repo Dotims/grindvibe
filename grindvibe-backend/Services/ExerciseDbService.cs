@@ -1,17 +1,20 @@
 using System.Text.Json;
 using System.Web;
 using grindvibe_backend.Models;
-using System.Net;             
+using System.Net;
+using SQLitePCL;
 
 namespace grindvibe_backend.Services
 {
     public class ExerciseDbService : IExerciseService
     {
         private readonly HttpClient _http;
+        private readonly ILogger<ExerciseDbService> _log;
 
-        public ExerciseDbService(HttpClient http)
+        public ExerciseDbService(HttpClient http, ILogger<ExerciseDbService> log)
         {
             _http = http;
+            _log = log;
         }
 
         // search

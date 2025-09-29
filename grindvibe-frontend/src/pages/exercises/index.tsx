@@ -201,7 +201,7 @@ export default function ExercisesPage() {
           )}
 
           <span className="flex min-w-[3rem] items-center justify-center rounded-full bg-muted/40 px-4 py-1.5 text-sm font-semibold text-foreground shadow-inner cursor-pointer">
-            {filters.page} / {total ? Math.ceil(total / pageSize) : 1}
+            {filters.page} / {total ? Math.ceil(total / filters.pageSize) : 1}
           </span>
 
           {canNext && (
