@@ -10,6 +10,11 @@ import { isApiError } from "../../api/client";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import ExerciseModal from "../../components/blocks/ExerciseModal";
 
+import { useAppDispatch, useAppSelector } from "../../store/hooks";
+import { selectExercisesFilters, selectQueryParams } from "../../features/exercises/exerciseFilters.selectors";
+import { setEquipment, setMuscle, setPage, setQ } from "../../features/exercises/exercisesFiltersSlice";
+
+
 function toApiError(e: unknown): ApiError {
   if (isApiError(e)) return e; 
 
@@ -37,15 +42,9 @@ export default function ExercisesPage() {
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<ExerciseDto | null>(null);
  
-  // filtry ui
-  const [q, setQ] = useState("");
-  const [muscle, setMuscle] = useState("");
-  const [equipment, setEquipment] = useState("");
-
   // opcje do dropdownow
   const [muscleOptions, setMuscleOptions] = useState<string[]>([]);
   const [equipmentOptions, setEquipmentOptions] = useState<string[]>([]);
-
 
   // stany ux dla fetchowania list
   const [listsLoading, setListsLoading] = useState(true);
@@ -56,9 +55,13 @@ export default function ExercisesPage() {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<ApiError | null>(null);
-  const [page, setPage] = useState(1);
-  const pageSize = 12;
 
+  const dispatch = useAppDispatch();
+  const filters = useAppSelector(selectExercisesFilters); 
+  const query   = useAppSelector(selectQueryParams);  
+
+  const canPrev = filters.page > 1;
+  const canNext = items.length === filters.pageSize && filters.page * filters.pageSize < total;
 
   useEffect(() => {
     let alive = true;    
@@ -80,28 +83,23 @@ export default function ExercisesPage() {
     return () => { alive = false };
   }, []);
 
+
   useEffect(() => {
     let alive = true;
-
-    console.log("[ExercisesPage] state ->", { q, page, muscle, equipment });
+    console.log("[ExercisesPage] query ->", query);
 
     const t = setTimeout(() => {
       (async () => {
         setLoading(true);
         setError(null);
         try {
-          const res = await searchExercises({
-            q,
-            page,
-            pageSize,
-            muscle: muscle ? [muscle] : [],
-            equipment: equipment ? [equipment] : []
-          });
+          const res = await searchExercises(query);
 
           if (!alive) return;
 
           setItems(res.items);
           setTotal(res.total);
+          console.log("[EXERCISES] received:", res.items?.length ?? 0, "total:", res.total);
         } catch (e) {
           if (alive) setError(toApiError(e));
         } finally {
@@ -114,10 +112,8 @@ export default function ExercisesPage() {
       alive = false;
       clearTimeout(t);
     };
-  }, [q, page, muscle, equipment]);
+  }, [query]);
 
-  const canPrev = page > 1;
-  const canNext = items.length === pageSize && page * pageSize < total;
 
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-10 bg-[var(--gv-bg)] text-[var(--gv-text)]">
@@ -135,31 +131,22 @@ export default function ExercisesPage() {
             <Search className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 opacity-70" />
             <Input
               placeholder="Search by name (EN)…"
-              value={q}
-              onChange={(e) => {
-                setPage(1); 
-                setQ(e.target.value);
-              }}
+              value={filters.q}
+              onChange={(e) => dispatch(setQ(e.target.value))}
               className="h-10 pl-8"
             />
           </div>
 
           <SimpleSelect
-            value={muscle}
-            onChange={(v) => {
-              setPage(1); 
-              setMuscle(v);
-            }}
+            value={filters.muscle}
+            onChange={(v) => dispatch(setMuscle(v))}
             options={muscleOptions}
             placeholder="Body part"
           />
 
           <SimpleSelect
-            value={equipment}
-            onChange={(v) => {
-              setPage(1);
-              setEquipment(v);
-            }}
+            value={filters.equipment}
+            onChange={(v) => { dispatch(setEquipment(v))}}
             options={equipmentOptions}
             placeholder="Equipment"
           />
@@ -202,9 +189,10 @@ export default function ExercisesPage() {
 
 
         <div className="mt-10 flex items-center justify-center gap-4">
+          
           {canPrev && (
             <button
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              onClick={() => dispatch(setPage(filters.page - 1))}
               className="flex h-10 w-10 items-center justify-center rounded-full border border-border bg-background text-foreground shadow-sm transition hover:bg-accent hover:text-accent-foreground"
               aria-label="Poprzednia strona"
             >
@@ -213,12 +201,12 @@ export default function ExercisesPage() {
           )}
 
           <span className="flex min-w-[3rem] items-center justify-center rounded-full bg-muted/40 px-4 py-1.5 text-sm font-semibold text-foreground shadow-inner cursor-pointer">
-            {page} / {total ? Math.ceil(total / pageSize) : 1}
+            {filters.page} / {total ? Math.ceil(total / pageSize) : 1}
           </span>
 
           {canNext && (
             <button
-              onClick={() => setPage((p) => p + 1)}
+              onClick={() => dispatch(setPage(filters.page + 1))}
               className="flex h-10 w-10 items-center justify-center rounded-full border border-border bg-background text-foreground shadow-sm transition hover:bg-accent hover:text-accent-foreground cursor-pointer"
               aria-label="Następna strona"
             >
