@@ -82,7 +82,6 @@ namespace grindvibe_backend.Services
                 Id   = data.GetProperty("exerciseId").GetString() ?? id,
                 Name = data.GetProperty("name").GetString() ?? "",
 
-                // v2: imageUrl (nie gifUrl)
                 ImageUrl = data.TryGetProperty("imageUrl", out var img)
                     ? img.GetString()
                     : null,
