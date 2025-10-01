@@ -16,8 +16,7 @@ namespace grindvibe_backend.Models
         public string? Difficulty { get; set; }
 
         // media & description
-        public string? ImageUrl { get; set; }
-        public string? VideoUrl { get; set; }
+        public string? ImageUrl { get; set; }  
         public string? Description { get; set; }
 
         // step-by-step instructions

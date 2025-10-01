@@ -164,7 +164,7 @@ export default function ExercisesPage() {
 
       {error && (
         error && error.status === 429
-          ? <Notice kind="warn">Zbyt wiele zapytań. Odczekaj chwilę i spróbuj ponownie.</Notice>
+          ? <Notice kind="warn">Zbyt wiele zapytań. Odczekaj chwilę i spróbuj ponownie. (darmowe API ma swoje ograniczenia)</Notice>
           : <Notice kind="error">Nie udało się pobrać ćwiczeń. {error.message && <span>({error.message})</span>}</Notice>
       )}
 
