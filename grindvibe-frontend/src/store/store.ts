@@ -1,9 +1,11 @@
 import { configureStore } from "@reduxjs/toolkit";
-import exercisesFilters from "../features/exercises/exercisesFiltersSlice";
+import exercisesFiltersReducer from "../features/exercises/exercisesFiltersSlice";
+import { listsReducer } from "../features/lists/listsSlice";
 
 export const store = configureStore({
     reducer: {
-        exercisesFilters,
+        lists: listsReducer,
+        exercisesFilters: exercisesFiltersReducer,
     },
     devTools: process.env.NODE_ENV !== "production",
 })

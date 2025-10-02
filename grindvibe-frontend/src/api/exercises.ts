@@ -2,8 +2,38 @@ import api from "./client";
 
 export type ExerciseLists = { muscles: string[]; equipments: string[] };
 
-export function getExerciseLists(): Promise<ExerciseLists> {
-    return api<ExerciseLists>("/exercises/lists");
+let listsCache: { data: ExerciseLists; ts: number } | null = null;
+let inFlightLists: Promise<ExerciseLists> | null = null;
+const LISTS_TTL_MS = 10 * 60 * 1000;
+
+export async function getExerciseLists(opts?: { force?: boolean }): Promise<ExerciseLists> {
+    const isFresh = listsCache && Date.now() - listsCache.ts < LISTS_TTL_MS;
+
+    if (!opts?.force && isFresh) {
+        return listsCache!.data;
+    }
+
+    if (inFlightLists) {
+        return inFlightLists
+    }
+
+    inFlightLists = (async () => {
+        try {
+            const data = await api<ExerciseLists>("/exercises/lists");
+            listsCache = { data, ts: Date.now() };
+
+            return data;
+        } finally {
+            inFlightLists = null;
+        }
+    })();
+
+    return inFlightLists;
+}
+
+export function invalidateExerciseListsCache() {
+    listsCache = null;
+    inFlightLists = null;
 }
 
 export interface ExerciseDto {
