@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Input } from "../../components/ui/input";
 import { Search } from "lucide-react";
 import SimpleSelect from "../../components/blocks/SimpleSelect";
-import { type ExerciseDto, searchExercises } from "../../api/exercises";
+import { type ExerciseDto, fetchAndCacheSearch, getCachedSearch } from "../../api/exercises";
 import ExerciseCard from "../../components/blocks/ExerciseCard";
 import { Notice } from "../../components/ui/Notice";
 import type { ApiError } from "../../api/client";
@@ -19,7 +19,6 @@ import { ensureListsLoaded, selectEquipments, selectMuscles, selectListsStatus, 
 
 function toApiError(e: unknown): ApiError {
   if (isApiError(e)) return e; 
-
 
   if (e instanceof DOMException && e.name === "AbortError") {
     return { status: 0, message: "Aborted" };
@@ -59,7 +58,6 @@ export default function ExercisesPage() {
   const listsStatus = useAppSelector(selectListsStatus);
   const hasLists   = useAppSelector(selectHasLists);
 
-
   const canPrev = filters.page > 1;
   const canNext = items.length === filters.pageSize && filters.page * filters.pageSize < total;
 
@@ -67,18 +65,31 @@ export default function ExercisesPage() {
 
 
   useEffect(() => {
+    const key = JSON.stringify(query)
+
+    const cached = getCachedSearch(query);
+    if (cached) {
+      setItems(cached.items)
+      setTotal(cached.total)
+      setLoading(false);
+    } else {
+      setLoading(true)
+    }
+
+    const controller = new AbortController();
     let alive = true;
+
     console.log("[ExercisesPage] query ->", query);
 
     const t = setTimeout(() => {
       (async () => {
-        setLoading(true);
-        setError(null);
         try {
-          const res = await searchExercises(query);
+          setError(null);
 
-          if (!alive) return;
+          const res = await fetchAndCacheSearch(query, controller.signal);
 
+          if (!alive || JSON.stringify(query) !== key) return;
+          
           setItems(res.items);
           setTotal(res.total);
           console.log("[EXERCISES] received:", res.items?.length ?? 0, "total:", res.total);
@@ -92,7 +103,8 @@ export default function ExercisesPage() {
 
     return () => {
       alive = false;
-      clearTimeout(t);
+      controller.abort()
+      clearTimeout(t)
     };
   }, [query]);
 
