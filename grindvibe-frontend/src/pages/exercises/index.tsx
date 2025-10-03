@@ -72,6 +72,7 @@ export default function ExercisesPage() {
       setItems(cached.items)
       setTotal(cached.total)
       setLoading(false);
+      return;
     } else {
       setLoading(true)
     }
@@ -92,7 +93,7 @@ export default function ExercisesPage() {
           
           setItems(res.items);
           setTotal(res.total);
-          console.log("[EXERCISES] received:", res.items?.length ?? 0, "total:", res.total);
+          console.log("[UI UPDATE] items set:", res.items.length, "total:", res.total);
         } catch (e) {
           if (alive) setError(toApiError(e));
         } finally {
