@@ -68,7 +68,7 @@ builder.Services.AddSwaggerGen();
 
 builder.Services.AddHttpClient<IExerciseService, ExerciseDbService>(c =>
 {
-    c.BaseAddress = new Uri("https://v2.exercisedb.dev/api/v1/"); 
+    c.BaseAddress = new Uri("https://www.exercisedb.dev/api/v1/"); 
     c.Timeout = TimeSpan.FromSeconds(20);
 });
 

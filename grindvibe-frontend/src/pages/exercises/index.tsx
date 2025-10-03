@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Input } from "../../components/ui/input";
 import { Search } from "lucide-react";
 import SimpleSelect from "../../components/blocks/SimpleSelect";
-import { type ExerciseDto, getExerciseLists, searchExercises } from "../../api/exercises";
+import { type ExerciseDto, fetchAndCacheSearch, getCachedSearch } from "../../api/exercises";
 import ExerciseCard from "../../components/blocks/ExerciseCard";
 import { Notice } from "../../components/ui/Notice";
 import type { ApiError } from "../../api/client";
@@ -13,11 +13,12 @@ import ExerciseModal from "../../components/blocks/ExerciseModal";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import { selectExercisesFilters, selectQueryParams } from "../../features/exercises/exerciseFilters.selectors";
 import { setEquipment, setMuscle, setPage, setQ } from "../../features/exercises/exercisesFiltersSlice";
+import { ensureListsLoaded, selectEquipments, selectMuscles, selectListsStatus, selectHasLists } from "../../features/lists/listsSlice";
+
 
 
 function toApiError(e: unknown): ApiError {
   if (isApiError(e)) return e; 
-
 
   if (e instanceof DOMException && e.name === "AbortError") {
     return { status: 0, message: "Aborted" };
@@ -42,15 +43,7 @@ export default function ExercisesPage() {
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<ExerciseDto | null>(null);
  
-  // opcje do dropdownow
-  const [muscleOptions, setMuscleOptions] = useState<string[]>([]);
-  const [equipmentOptions, setEquipmentOptions] = useState<string[]>([]);
-
-  // stany ux dla fetchowania list
-  const [listsLoading, setListsLoading] = useState(true);
-  const [listsError, setListsError] = useState<string | null>(null);
-
-  // lista cwiczen
+  // exercise lists
   const [items, setItems] = useState<ExerciseDto[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -60,46 +53,47 @@ export default function ExercisesPage() {
   const filters = useAppSelector(selectExercisesFilters); 
   const query   = useAppSelector(selectQueryParams);  
 
+  const muscles    = useAppSelector(selectMuscles);
+  const equipments = useAppSelector(selectEquipments);
+  const listsStatus = useAppSelector(selectListsStatus);
+  const hasLists   = useAppSelector(selectHasLists);
+
   const canPrev = filters.page > 1;
   const canNext = items.length === filters.pageSize && filters.page * filters.pageSize < total;
 
-  useEffect(() => {
-    let alive = true;    
-    (async () => {
-      try {
-        const data = await getExerciseLists();
-        if (!alive) return;
-
-        setMuscleOptions(data.muscles ?? []);
-        setEquipmentOptions(data.equipments ?? []);
-        setListsError(null);
-      } catch (err) {
-        if (!alive) return;
-        setListsError((err as Error)?.message ?? "Failed to load filters");
-      } finally {
-        if (alive) setListsLoading(false);
-      }
-    })();
-    return () => { alive = false };
-  }, []);
+  useEffect(() => { dispatch(ensureListsLoaded()); }, [dispatch]);
 
 
   useEffect(() => {
+    const key = JSON.stringify(query)
+
+    const cached = getCachedSearch(query);
+    if (cached) {
+      setItems(cached.items)
+      setTotal(cached.total)
+      setLoading(false);
+      return;
+    } else {
+      setLoading(true)
+    }
+
+    const controller = new AbortController();
     let alive = true;
+
     console.log("[ExercisesPage] query ->", query);
 
     const t = setTimeout(() => {
       (async () => {
-        setLoading(true);
-        setError(null);
         try {
-          const res = await searchExercises(query);
+          setError(null);
 
-          if (!alive) return;
+          const res = await fetchAndCacheSearch(query, controller.signal);
 
+          if (!alive || JSON.stringify(query) !== key) return;
+          
           setItems(res.items);
           setTotal(res.total);
-          console.log("[EXERCISES] received:", res.items?.length ?? 0, "total:", res.total);
+          console.log("[UI UPDATE] items set:", res.items.length, "total:", res.total);
         } catch (e) {
           if (alive) setError(toApiError(e));
         } finally {
@@ -110,7 +104,8 @@ export default function ExercisesPage() {
 
     return () => {
       alive = false;
-      clearTimeout(t);
+      controller.abort()
+      clearTimeout(t)
     };
   }, [query]);
 
@@ -140,31 +135,35 @@ export default function ExercisesPage() {
           <SimpleSelect
             value={filters.muscle}
             onChange={(v) => dispatch(setMuscle(v))}
-            options={muscleOptions}
-            placeholder="Body part"
+            options={muscles}
+            placeholder={listsStatus === "loading" && !hasLists ? "Loading…" : "Body part"}
           />
 
           <SimpleSelect
             value={filters.equipment}
-            onChange={(v) => { dispatch(setEquipment(v))}}
-            options={equipmentOptions}
-            placeholder="Equipment"
+            onChange={(v) => dispatch(setEquipment(v))}
+            options={equipments}
+            placeholder={listsStatus === "loading" && !hasLists ? "Loading…" : "Equipment"}
           />
         </div>
       </div>
 
-      {listsLoading && <Notice>Ładowanie filtrów…</Notice>}
-      {listsError && (
+      {listsStatus === "loading" && !hasLists && (
+        <Notice>Ładowanie filtrów…</Notice>
+      )}
+      {listsStatus === "failed" && !hasLists && (
         <Notice kind="error">Nie udało się wczytać filtrów. Spróbuj ponownie.</Notice>
       )}
 
-      {loading && <div className="grid place-items-center rounded-xl border border-dashed p-10 text-center text-sm text-muted-foreground">
-        Ładowanie ćwiczeń…
-      </div>}
+      {loading && (
+        <div className="grid place-items-center rounded-xl border border-dashed p-10 text-center text-sm text-muted-foreground">
+          Ładowanie ćwiczeń…
+        </div>
+      )}
 
       {error && (
-        error && error.status === 429
-          ? <Notice kind="warn">Zbyt wiele zapytań. Odczekaj chwilę i spróbuj ponownie.</Notice>
+        error.status === 429
+          ? <Notice kind="warn">Zbyt wiele zapytań. Odczekaj chwilę i spróbuj ponownie. (darmowe API ma swoje ograniczenia)</Notice>
           : <Notice kind="error">Nie udało się pobrać ćwiczeń. {error.message && <span>({error.message})</span>}</Notice>
       )}
 

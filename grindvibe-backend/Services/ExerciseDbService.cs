@@ -2,7 +2,6 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Web;
-using System.Linq;
 using grindvibe_backend.Models;
 
 namespace grindvibe_backend.Services
@@ -18,36 +17,36 @@ namespace grindvibe_backend.Services
             _log = log;
         }
 
-        // list / search
+        // LIST / SEARCH 
         public async Task<PagedResponse<ExerciseDto>> SearchAsync(
             string? q, int page, int pageSize, CancellationToken ct = default)
         {
-            var limit = Math.Clamp(pageSize, 1, 25);
+            var limit  = Math.Clamp(pageSize, 1, 25);
+            var offset = Math.Max(0, (page - 1) * limit);
 
             var qs = HttpUtility.ParseQueryString(string.Empty);
-            qs["limit"] = limit.ToString();
-            if (!string.IsNullOrWhiteSpace(q))
-                qs["name"] = q.Trim();
+            qs["limit"]  = limit.ToString();
+            qs["offset"] = offset.ToString();
+            if (!string.IsNullOrWhiteSpace(q)) qs["search"] = q.Trim();
 
             var url = $"exercises?{qs}";
             _log.LogInformation("UPSTREAM → {Url}", url);
 
             var resp = await _http.GetFromJsonAsync<ExercisesResponse>(url, ct);
-            if (resp is null || resp.data is null)
-                return new PagedResponse<ExerciseDto>();
+            if (resp is null || resp.data is null) return new PagedResponse<ExerciseDto>();
 
             var items = resp.data.Select(MapToDto).ToList();
 
             return new PagedResponse<ExerciseDto>
             {
-                Page     = 1,
+                Page     = resp.metadata?.currentPage ?? page,
                 PageSize = limit,
-                Total    = resp.meta?.total ?? items.Count,
+                Total    = resp.metadata?.totalExercises ?? items.Count,
                 Items    = items
             };
         }
 
-        // dictionary list
+        // DICTIONARY
         public async Task<List<string>> GetAllBodypartsAsync(CancellationToken ct = default)
         {
             var json = await GetRawAsync("bodyparts", ct);
@@ -60,144 +59,101 @@ namespace grindvibe_backend.Services
             return ParseNames(json);
         }
 
-        // description 
+        // EXERCISE DESCRIPTION
         public async Task<ExerciseDto?> GetByIdAsync(string id, CancellationToken ct = default)
         {
             var url = $"exercises/{id}";
             using var resp = await _http.GetAsync(url, ct);
-
-            if (resp.StatusCode == HttpStatusCode.NotFound)
-                return null;
-
+            if (resp.StatusCode == HttpStatusCode.NotFound) return null;
             resp.EnsureSuccessStatusCode();
 
             var json = await resp.Content.ReadAsStringAsync(ct);
             using var doc = JsonDocument.Parse(json);
+            if (!doc.RootElement.TryGetProperty("data", out var data)) return null;
 
-            if (!doc.RootElement.TryGetProperty("data", out var data))
-                return null;
-
-            var dto = new ExerciseDto
+            return new ExerciseDto
             {
-                Id   = data.GetProperty("exerciseId").GetString() ?? id,
-                Name = data.GetProperty("name").GetString() ?? "",
-
-                // v2: imageUrl (nie gifUrl)
-                ImageUrl = data.TryGetProperty("imageUrl", out var img)
-                    ? img.GetString()
-                    : null,
-
-                VideoUrl = data.TryGetProperty("videoUrl", out var vid)
-                    ? vid.GetString()
-                    : null,
-
-                PrimaryMuscles = data.TryGetProperty("targetMuscles", out var tm)
-                    ? tm.EnumerateArray()
-                        .Select(x => x.GetString() ?? "")
-                        .Where(x => !string.IsNullOrWhiteSpace(x))
-                        .ToList()
-                    : new List<string>(),
-
+                Id          = data.GetProperty("exerciseId").GetString() ?? id,
+                Name        = data.GetProperty("name").GetString() ?? "",
+                ImageUrl    = data.TryGetProperty("gifUrl", out var gif) ? gif.GetString() : null,
+                Description = null,
+                PrimaryMuscles   = data.TryGetProperty("targetMuscles", out var tm)
+                    ? tm.EnumerateArray().Select(x => x.GetString() ?? "").Where(x => !string.IsNullOrWhiteSpace(x)).ToList()
+                    : new(),
                 SecondaryMuscles = data.TryGetProperty("secondaryMuscles", out var sm)
-                    ? sm.EnumerateArray()
-                        .Select(x => x.GetString() ?? "")
-                        .Where(x => !string.IsNullOrWhiteSpace(x))
-                        .ToList()
-                    : new List<string>(),
-
-                Equipment = data.TryGetProperty("equipments", out var eq)
-                    ? eq.EnumerateArray()
-                        .Select(x => x.GetString() ?? "")
-                        .Where(x => !string.IsNullOrWhiteSpace(x))
-                        .ToList()
-                    : new List<string>(),
-
-                Description = data.TryGetProperty("overview", out var ov)
-                    ? ov.GetString()
+                    ? sm.EnumerateArray().Select(x => x.GetString() ?? "").Where(x => !string.IsNullOrWhiteSpace(x)).ToList()
+                    : new(),
+                Equipment        = data.TryGetProperty("equipments", out var eq)
+                    ? eq.EnumerateArray().Select(x => x.GetString() ?? "").Where(x => !string.IsNullOrWhiteSpace(x)).ToList()
+                    : new(),
+                instructions     = data.TryGetProperty("instructions", out var instr)
+                    ? instr.EnumerateArray().Select(x => x.GetString() ?? "").Where(x => !string.IsNullOrWhiteSpace(x)).ToList()
                     : null,
-
-                instructions = data.TryGetProperty("instructions", out var instr)
-                    ? instr.EnumerateArray()
-                        .Select(x => x.GetString() ?? "")
-                        .Where(x => !string.IsNullOrWhiteSpace(x))
-                        .ToList()
-                    : null,
-
-                BodyPart =
-                    data.TryGetProperty("bodyParts", out var bps) && bps.ValueKind == JsonValueKind.Array
-                        ? bps.EnumerateArray()
-                              .Select(x => x.GetString() ?? "")
-                              .FirstOrDefault(s => !string.IsNullOrWhiteSpace(s))?
-                              .Trim()
-                        : (data.TryGetProperty("bodyPart", out var bp) && bp.ValueKind == JsonValueKind.String
-                            ? (bp.GetString() ?? "").Trim()
-                            : null)
+                BodyPart         = data.TryGetProperty("bodyParts", out var bps) && bps.ValueKind == JsonValueKind.Array
+                    ? bps.EnumerateArray().Select(x => x.GetString() ?? "").FirstOrDefault(s => !string.IsNullOrWhiteSpace(s))?.Trim()
+                    : null
             };
-
-            return dto;
         }
 
-        //  filtr: body part
+        // FILTR: BODY PART 
         public async Task<PagedResponse<ExerciseDto>> GetByBodyPartAsync(
             string bodyPart, int page, int pageSize, CancellationToken ct = default)
         {
-            var limit = Math.Clamp(pageSize, 1, 25);
-            var bp = (bodyPart ?? string.Empty).Trim();
+            var limit  = Math.Clamp(pageSize, 1, 25);
+            var offset = Math.Max(0, (page - 1) * limit);
 
             var qs = HttpUtility.ParseQueryString(string.Empty);
-            qs["limit"] = limit.ToString();
-            if (!string.IsNullOrWhiteSpace(bp))
-                qs["bodyParts"] = bp;
+            qs["limit"]  = limit.ToString();
+            qs["offset"] = offset.ToString();
+            if (!string.IsNullOrWhiteSpace(bodyPart)) qs["bodyParts"] = bodyPart.Trim();
 
-            var url = $"exercises?{qs}";
+            var url = $"exercises/filter?{qs}";
             _log.LogInformation("UPSTREAM → {Url}", url);
 
             var resp = await _http.GetFromJsonAsync<ExercisesResponse>(url, ct);
-            if (resp is null || resp.data is null)
-                return new PagedResponse<ExerciseDto>();
+            if (resp is null || resp.data is null) return new PagedResponse<ExerciseDto>();
 
             var items = resp.data.Select(MapToDto).ToList();
 
             return new PagedResponse<ExerciseDto>
             {
-                Page     = 1,
+                Page     = resp.metadata?.currentPage ?? page,
                 PageSize = limit,
-                Total    = resp.meta?.total ?? items.Count,
+                Total    = resp.metadata?.totalExercises ?? items.Count,
                 Items    = items
             };
         }
 
-        // filtr: equipment
+        // FILTR: EQUIPMENT 
         public async Task<PagedResponse<ExerciseDto>> GetByEquipmentAsync(
             string equipment, int page, int pageSize, CancellationToken ct = default)
         {
-            var limit = Math.Clamp(pageSize, 1, 25);
-            var eq = (equipment ?? string.Empty).Trim();
+            var limit  = Math.Clamp(pageSize, 1, 25);
+            var offset = Math.Max(0, (page - 1) * limit);
 
             var qs = HttpUtility.ParseQueryString(string.Empty);
-            qs["limit"] = limit.ToString();
-            if (!string.IsNullOrWhiteSpace(eq))
-                qs["equipments"] = eq;
+            qs["limit"]  = limit.ToString();
+            qs["offset"] = offset.ToString();
+            if (!string.IsNullOrWhiteSpace(equipment)) qs["equipment"] = equipment.Trim();
 
-            var url = $"exercises?{qs}";
+            var url = $"exercises/filter?{qs}";
             _log.LogInformation("UPSTREAM → {Url}", url);
 
             var resp = await _http.GetFromJsonAsync<ExercisesResponse>(url, ct);
-            if (resp is null || resp.data is null)
-                return new PagedResponse<ExerciseDto>();
+            if (resp is null || resp.data is null) return new PagedResponse<ExerciseDto>();
 
             var items = resp.data.Select(MapToDto).ToList();
 
             return new PagedResponse<ExerciseDto>
             {
-                Page     = 1,
+                Page     = resp.metadata?.currentPage ?? page,
                 PageSize = limit,
-                Total    = resp.meta?.total ?? items.Count,
+                Total    = resp.metadata?.totalExercises ?? items.Count,
                 Items    = items
             };
         }
 
-        // helpers
+        // HELPERS
         private async Task<string> GetRawAsync(string relativeUrl, CancellationToken ct)
         {
             using var resp = await _http.GetAsync(relativeUrl, ct);
@@ -210,12 +166,6 @@ namespace grindvibe_backend.Services
         {
             using var doc = JsonDocument.Parse(json);
             var root = doc.RootElement;
-
-            if (root.ValueKind == JsonValueKind.Array)
-                return root.EnumerateArray()
-                           .Select(e => e.GetString() ?? "")
-                           .Where(s => !string.IsNullOrWhiteSpace(s))
-                           .ToList();
 
             if (root.ValueKind == JsonValueKind.Object && root.TryGetProperty("data", out var dataEl))
             {
@@ -236,6 +186,13 @@ namespace grindvibe_backend.Services
                 }
             }
 
+            // sometimes API return empty string array
+            if (root.ValueKind == JsonValueKind.Array)
+                return root.EnumerateArray()
+                           .Select(e => e.GetString() ?? "")
+                           .Where(s => !string.IsNullOrWhiteSpace(s))
+                           .ToList();
+
             throw new JsonException("Unexpected JSON shape for names list.");
         }
 
@@ -247,37 +204,37 @@ namespace grindvibe_backend.Services
             BodyPart         = e.bodyParts?.FirstOrDefault(),
             PrimaryMuscles   = e.targetMuscles ?? new(),
             SecondaryMuscles = e.secondaryMuscles ?? new(),
-            ImageUrl         = e.imageUrl,
-            Description      = null
+            ImageUrl         = e.gifUrl,
+            Description      = null,
+            instructions     = e.instructions
         };
     }
 
-    // models response from external api (list)
     public class ExercisesResponse
     {
         public bool success { get; set; }
-        public Meta? meta { get; set; }
+        public Metadata? metadata { get; set; } 
         public List<ExerciseItem> data { get; set; } = new();
     }
 
-    public class Meta
+    public class Metadata
     {
-        public int total { get; set; }
-        public bool hasNextPage { get; set; }
-        public bool hasPreviousPage { get; set; }
-        public string? nextCursor { get; set; }
-        public string? previousCursor { get; set; }
+        public int    totalExercises { get; set; }
+        public int    totalPages     { get; set; }
+        public int    currentPage    { get; set; }
+        public string? previousPage  { get; set; }
+        public string? nextPage      { get; set; }
     }
 
     public class ExerciseItem
     {
-        public string exerciseId { get; set; } = default!;
-        public string name { get; set; } = default!;
-        public List<string>? equipments { get; set; }
-        public List<string>? bodyParts { get; set; }
-        public string? exerciseType { get; set; }
-        public List<string>? targetMuscles { get; set; }
+        public string        exerciseId       { get; set; } = default!;
+        public string        name             { get; set; } = default!;
+        public string?       gifUrl           { get; set; }           
+        public List<string>? targetMuscles    { get; set; }
+        public List<string>? bodyParts        { get; set; }
+        public List<string>? equipments       { get; set; }
         public List<string>? secondaryMuscles { get; set; }
-        public string? imageUrl { get; set; }
+        public List<string>? instructions     { get; set; }
     }
 }

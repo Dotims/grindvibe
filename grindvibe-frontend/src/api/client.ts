@@ -4,6 +4,7 @@ export type ApiError = {
   status: number;
   message: string;
   detail?: string;
+  signal?: AbortSignal;
 };
 
 function getString(obj: unknown, key: string): string | undefined {
