@@ -14,6 +14,7 @@ export function useAuth() {
   const dispatch = useAppDispatch();
   const auth = useAppSelector(selectAuth);
 
+  // Bootstrap auth state on first use
   useEffect(() => {
     if (!auth.bootstrapped) {
       dispatch(bootstrapAuth());
@@ -29,6 +30,6 @@ export function useAuth() {
     register: (p: { email: string; password: string; nickname?: string }) =>
       dispatch(registerThunk(p)).unwrap(),
     logout: () => dispatch(logoutAction()),
-    setUser: (u: AuthUser) => dispatch(setUserAction(u)), // używane po uploadzie avatara
+    setUser: (u: AuthUser) => dispatch(setUserAction(u)), // for updating user info
   };
 }
