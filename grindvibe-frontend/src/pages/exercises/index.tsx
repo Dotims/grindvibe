@@ -66,8 +66,8 @@ export default function ExercisesPage() {
 
   useEffect(() => {
     const key = JSON.stringify(query)
-
     const cached = getCachedSearch(query);
+    
     if (cached) {
       setItems(cached.items)
       setTotal(cached.total)

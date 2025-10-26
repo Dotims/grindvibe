@@ -47,8 +47,7 @@ export default function RegisterPage() {
 
     try {
       await register({ email, password, nickname: name });
-
-      navigate("./account", { replace: true });
+      navigate("/auth/login", { replace: true, state: { registered: true } });
     } catch (err: unknown) {
       let message = "Wystąpił nieznany błąd. Spróbuj ponownie.";
       if (err instanceof Error) message = err.message;

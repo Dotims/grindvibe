@@ -11,16 +11,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-  const storedToken = localStorage.getItem(STORAGE_KEYS.token);
-  const storedUser  = localStorage.getItem(STORAGE_KEYS.user);
-  if (storedToken) setToken(storedToken);
-  if (storedUser) {
-    try {
-      setUser(JSON.parse(storedUser));
-    } catch (e) { console.warn("Invalid user JSON", e); }
-  }
-  setLoading(false);
-}, []);
+    const storedToken = localStorage.getItem(STORAGE_KEYS.token);
+    const storedUser  = localStorage.getItem(STORAGE_KEYS.user);
+    if (storedToken) setToken(storedToken);
+    if (storedUser) {
+      try {
+        setUser(JSON.parse(storedUser));
+      } catch (e) { console.warn("Invalid user JSON", e); }
+    }
+    setLoading(false);
+  }, []);
 
   useEffect(() => {
     if (token) localStorage.setItem(STORAGE_KEYS.token, token);

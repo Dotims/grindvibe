@@ -3,8 +3,8 @@ import { cn } from "../../lib/utils";
 
 const PRIMARY = [
   { to: "/", label: "Strona główna" },
-  { to: "/plan", label: "Plan treningowy" },
   { to: "/cwiczenia", label: "Ćwiczenia" },
+  { to: "/plan", label: "Plan treningowy" },
   { to: "/profil", label: "Profil" },
 ];
 

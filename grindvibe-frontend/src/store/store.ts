@@ -1,11 +1,13 @@
 import { configureStore } from "@reduxjs/toolkit";
 import exercisesFiltersReducer from "../features/exercises/exercisesFiltersSlice";
 import { listsReducer } from "../features/lists/listsSlice";
+import { authReducer } from "../features/auth/authSlice";
 
 export const store = configureStore({
     reducer: {
         lists: listsReducer,
         exercisesFilters: exercisesFiltersReducer,
+        auth: authReducer,
     },
     devTools: process.env.NODE_ENV !== "production",
 })
