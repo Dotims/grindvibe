@@ -91,7 +91,7 @@ export default function Login() {
         <div className="w-full max-w-md">
           {/* Gradient border + glass (izolacja warstwy + stabilne tło) */}
           <div className="isolate rounded-2xl bg-gradient-to-b from-white/70 via-white/55 to-white/40 p-[1px] shadow-[0_8px_50px_-12px_rgba(0,0,0,0.35)] backdrop-blur-xl dark:from-zinc-800/55 dark:via-zinc-800/45 dark:to-zinc-900/40 dark:shadow-[0_8px_50px_-12px_rgba(0,0,0,0.7)]">
-            <div className="rounded-2xl border border-white/40 bg-white/70 supports-[backdrop-filter]:bg-white/60 backdrop-blur-xl dark:border-white/10 dark:bg-zinc-900/60">
+            <div className="rounded-2xl border border-white/40 bg-white/80 dark:border-white/10 dark:bg-zinc-900/70">
               <Card className="rounded-2xl border-0 bg-transparent shadow-none">
                 <CardContent className="p-6 sm:p-8">
                   {/* Nagłówek */}

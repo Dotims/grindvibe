@@ -15,8 +15,8 @@ import { useAuth } from "../../auth/useAuth";
 
 const NAV = [
   { to: "/", label: "Strona główna" },
-  { to: "/training-plan", label: "Plany treningowe" },
   { to: "/exercises", label: "Ćwiczenia" },
+  { to: "/training-plan", label: "Plany treningowe" },
 ];
 
 function initialsFrom(
@@ -54,7 +54,8 @@ function getUserGradient(
 
 
 export default function Header() {
-  const { isAuthenticated, user } = useAuth();
+  const { user } = useAuth();
+  const isAuthenticated = !!user;
 
   return (
     <header
