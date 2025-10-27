@@ -68,6 +68,12 @@ public class AuthController : ControllerBase
         
         return Ok(new { token, user = new { user.Id, user.Email, user.nickname, user.AvatarUrl } });
     }
-
+    [HttpPost("google")]
+    public IActionResult GoogleLoginEcho([FromBody] dynamic body)
+    {
+        var idToken = (string?)body?.IdToken ?? (string?)body?.idToken;
+        if (string.IsNullOrWhiteSpace(idToken)) return BadRequest("Missing IdToken");
+        return Ok(new { received = true }); // temporary
+    }
     
 }

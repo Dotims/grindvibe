@@ -7,6 +7,7 @@ import { motion } from "framer-motion";
 import { LogIn, Mail, Lock, Eye, EyeOff, HelpCircle } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "../../auth/useAuth";
+import { GoogleLogin } from "@react-oauth/google";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -102,7 +103,6 @@ export default function Login() {
                     </p>
                   </div>
 
-                  {/* Kontynuuj z Google */}
                   <Button
                     type="button"
                     variant="outline"
@@ -113,6 +113,12 @@ export default function Login() {
                     <GoogleIcon className="h-5 w-5" />
                     Kontynuuj z Google
                   </Button>
+
+                  <GoogleLogin onSuccess={(cred) => {
+                      console.log("ID token: ", cred.credential);
+                    }}
+                    onError={() => console.log("Google login failed")}
+                  />
 
                   {/* Divider */}
                   <div className="relative mb-5">
