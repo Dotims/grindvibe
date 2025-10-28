@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using grindvibe_backend.Helpers;
+using Google.Apis.Auth;
 
 namespace grindvibe_backend.Controllers;
 
@@ -14,12 +15,14 @@ public class AuthController : ControllerBase
     private readonly AppDbContext _db;
     private readonly IPasswordHasher<User> _hasher;
     private readonly IJwtTokenGenerator _jwt;
+    private readonly IConfiguration _config;
 
-    public AuthController(AppDbContext db, IPasswordHasher<User> hasher, IJwtTokenGenerator jwt)
+    public AuthController(AppDbContext db, IPasswordHasher<User> hasher, IJwtTokenGenerator jwt, IConfiguration config)
     {
         _db = db;
         _hasher = hasher;
         _jwt = jwt;
+        _config = config;
     }
 
     public record RegisterDto(string? nickname, string Email, string Password);
@@ -65,15 +68,83 @@ public class AuthController : ControllerBase
             return Unauthorized("Nieprawidłowy e-mail lub hasło.");
 
         var token = _jwt.Generate(user);
-        
+
         return Ok(new { token, user = new { user.Id, user.Email, user.nickname, user.AvatarUrl } });
     }
+
     [HttpPost("google")]
-    public IActionResult GoogleLoginEcho([FromBody] dynamic body)
+    public async Task<IActionResult> GoogleLogin([FromBody] dynamic body, [FromServices] IConfiguration config)
     {
-        var idToken = (string?)body?.IdToken ?? (string?)body?.idToken;
-        if (string.IsNullOrWhiteSpace(idToken)) return BadRequest("Missing IdToken");
-        return Ok(new { received = true }); // temporary
+        var idToken = body.GetProperty("IdToken").GetString();
+
+        if (string.IsNullOrWhiteSpace(idToken))
+            return BadRequest("Missing IdToken");
+
+        Console.WriteLine($"Received IdToken: {idToken}");
+
+        var clientId = config["GoogleAuth:ClientId"] ?? Environment.GetEnvironmentVariable("GOOGLE_CLIENT_ID");
+        Console.WriteLine($"ClientId: {clientId}");
+        
+        if (string.IsNullOrWhiteSpace(clientId))
+            return StatusCode(500, "Google ClientId not configured");
+
+        GoogleJsonWebSignature.Payload payload;
+        try
+        {
+            payload = await GoogleJsonWebSignature.ValidateAsync(
+                idToken,
+                new GoogleJsonWebSignature.ValidationSettings
+                {
+                    Audience = new[] { clientId }
+                });
+                Console.WriteLine($"Token payload: {payload.Email}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error validating Google token: {ex.Message}");
+            return Unauthorized("Invalid Google token");
+        }
+
+        if (payload.EmailVerified != true)
+            return Unauthorized("Email not verified");
+
+        var email = payload.Email;
+        var user = await _db.Users.SingleOrDefaultAsync(u => u.Email == email);
+
+        if (user == null)
+        {
+            user = new User
+            {
+                Email = email,
+                PasswordHash = string.Empty, 
+                nickname = payload.Name ?? email,
+                AvatarUrl = payload.Picture
+            };
+
+            _db.Users.Add(user);
+            await _db.SaveChangesAsync();
+        }
+        else
+        {
+            if (string.IsNullOrEmpty(user.AvatarUrl) && !string.IsNullOrEmpty(payload.Picture))
+            {
+                user.AvatarUrl = payload.Picture;
+                await _db.SaveChangesAsync();
+            }
+        }
+
+        var token = _jwt.Generate(user);
+
+        return Ok(new
+        {
+            token,
+            user = new
+            {
+                user.Id,
+                user.Email,
+                user.nickname,
+                user.AvatarUrl
+            }
+        });
     }
-    
 }
