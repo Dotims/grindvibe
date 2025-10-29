@@ -44,33 +44,39 @@ export default function Login() {
   }
 
     const loginWithGoogle = useGoogleLogin({
-    flow: "auth-code",
-    onSuccess: async (resp) => {
-      const idToken = resp.code;
-      console.log("Google auth code:", idToken);
+      flow: "auth-code",
+      onSuccess: async (resp) => {
+        const authCode = resp.code; 
+        console.log("Google auth code:", authCode);
 
-      try {
-        const res = await fetch("https://localhost:7093/auth/google", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ token: idToken }),
-        });
+        try {
+          const res = await fetch("https://localhost:7093/auth/google", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ AuthCode: authCode }),
+          });
 
-        if (!res.ok) { throw new Error("Google login failed"); }
-        const data = await res.json();
+          if (!res.ok) {
+            const errorData = await res.json();
+            console.error("Google login failed:", errorData);
+            setError(`Logowanie przez Google nie powiodło się: ${errorData.message || 'Nieznany błąd'}`);
+            return;
+          }
 
-        localStorage.setItem("token", data.token);
-        localStorage.setItem("auth_user", JSON.stringify(data.user));
-        navigate("/account");
-      } catch (err) {
-        console.error("Google login failed:", err);
-        setError("Logowanie przez Google nie powiodło się.");
-      }
-    },
-    onError: () => {
-      setError("Google login failed");
-    },
-  });
+          const data = await res.json();
+          localStorage.setItem("token", data.token);
+          localStorage.setItem("auth_user", JSON.stringify(data.user));
+          navigate("/account");
+        } catch (err) {
+          console.error("Google login failed:", err);
+          setError("Logowanie przez Google nie powiodło się.");
+        }
+      },
+      onError: () => {
+        setError("Google login failed");
+      },
+    });
+
 
   return (
     <section

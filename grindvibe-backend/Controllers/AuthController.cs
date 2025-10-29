@@ -5,6 +5,9 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using grindvibe_backend.Helpers;
 using Google.Apis.Auth;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using Newtonsoft.Json;
 
 namespace grindvibe_backend.Controllers;
 
@@ -75,18 +78,26 @@ public class AuthController : ControllerBase
     [HttpPost("google")]
     public async Task<IActionResult> GoogleLogin([FromBody] GoogleLoginRequest request, [FromServices] IConfiguration config)
     {
-        var idToken = request?.IdToken;
+        var authCode = request?.AuthCode;
 
-        if (string.IsNullOrWhiteSpace(idToken))
-            return BadRequest("Missing IdToken");
+        if (string.IsNullOrWhiteSpace(authCode))
+            return BadRequest("Missing authCode");
 
-        Console.WriteLine($"Received IdToken: {idToken}");
+        Console.WriteLine($"Received authCode: {authCode}");
 
         var clientId = config["GoogleAuth:ClientId"] ?? Environment.GetEnvironmentVariable("GOOGLE_CLIENT_ID");
         Console.WriteLine($"ClientId: {clientId}");
         
         if (string.IsNullOrWhiteSpace(clientId))
             return StatusCode(500, "Google ClientId not configured");
+
+        var tokenResponse = await GetGoogleIdToken(authCode, clientId);
+
+        if (tokenResponse == null)
+            return Unauthorized("Failed to get ID token from Google.");
+
+        var idToken = tokenResponse.IdToken;
+        Console.WriteLine($"Received ID Token: {idToken}");
 
         GoogleJsonWebSignature.Payload payload;
         try
@@ -148,4 +159,61 @@ public class AuthController : ControllerBase
         });
     }
 
+    private async Task<TokenResponse?> GetGoogleIdToken(string authCode, string clientId)
+    {
+        using (var client = new HttpClient())
+        {
+            var clientSecret = Environment.GetEnvironmentVariable("GOOGLE_CLIENT_SECRET");
+            var redirectUri = Environment.GetEnvironmentVariable("GOOGLE_REDIRECT_URI");    
+
+            var content = new FormUrlEncodedContent(new[]
+            {
+                new KeyValuePair<string, string>("code", authCode),
+                new KeyValuePair<string, string>("client_id", clientId),
+                new KeyValuePair<string, string>("client_secret", clientSecret),  
+                new KeyValuePair<string, string>("redirect_uri", redirectUri),  
+                new KeyValuePair<string, string>("grant_type", "authorization_code")
+            });
+
+            var response = await client.PostAsync("https://oauth2.googleapis.com/token", content);
+            var responseContent = await response.Content.ReadAsStringAsync();
+
+            if (response.IsSuccessStatusCode)
+            {
+                try
+                {
+                    var tokenResponse = JsonConvert.DeserializeObject<TokenResponse>(responseContent);
+                    if (tokenResponse == null)
+                    {
+                        Console.WriteLine("Error: Response content is null after deserialization.");
+                        return null;
+                    }
+                    return tokenResponse;
+                }
+                catch (JsonException ex)
+                {
+                    Console.WriteLine($"Error deserializing response: {ex.Message}");
+                    return null;
+                }
+            }
+            else
+            {
+                Console.WriteLine($"Error response from Google: {responseContent}");
+                return null;
+            }
+        }
+    }
+
+
+
+    public class TokenResponse
+    {
+        public string? IdToken { get; set; }
+        public string? AccessToken { get; set; }
+    }
+
+    public class GoogleLoginRequest
+    {
+        public string? AuthCode { get; set; }
+    }
 }
