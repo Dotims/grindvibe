@@ -73,9 +73,9 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("google")]
-    public async Task<IActionResult> GoogleLogin([FromBody] dynamic body, [FromServices] IConfiguration config)
+    public async Task<IActionResult> GoogleLogin([FromBody] GoogleLoginRequest request, [FromServices] IConfiguration config)
     {
-        var idToken = (string?)body?.IdToken;
+        var idToken = request?.IdToken;
 
         if (string.IsNullOrWhiteSpace(idToken))
             return BadRequest("Missing IdToken");
@@ -97,7 +97,7 @@ public class AuthController : ControllerBase
                 {
                     Audience = new[] { clientId }
                 });
-                Console.WriteLine($"Token payload: {payload.Email}");
+            Console.WriteLine($"Token payload: {payload.Email}");
         }
         catch (Exception ex)
         {
@@ -147,4 +147,5 @@ public class AuthController : ControllerBase
             }
         });
     }
+
 }
