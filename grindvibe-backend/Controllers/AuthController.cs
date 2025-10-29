@@ -75,7 +75,7 @@ public class AuthController : ControllerBase
     [HttpPost("google")]
     public async Task<IActionResult> GoogleLogin([FromBody] dynamic body, [FromServices] IConfiguration config)
     {
-        var idToken = body.GetProperty("IdToken").GetString();
+        var idToken = (string?)body?.IdToken;
 
         if (string.IsNullOrWhiteSpace(idToken))
             return BadRequest("Missing IdToken");
