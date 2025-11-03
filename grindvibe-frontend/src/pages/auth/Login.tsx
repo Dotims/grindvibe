@@ -7,8 +7,8 @@ import { motion } from "framer-motion";
 import { LogIn, Mail, Lock, Eye, EyeOff, HelpCircle } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "../../auth/useAuth";
-// import { GoogleLogin } from "@react-oauth/google";
 import { useGoogleLogin } from "@react-oauth/google";
+import { GoogleLogin } from "@react-oauth/google";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -27,55 +27,51 @@ export default function Login() {
   const { login } = useAuth();
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      await login({ email, password });
-      navigate(from, { replace: true });
-    } catch (err: unknown) {
-      let message = "Coś poszło nie tak. Spróbuj ponownie.";
-      if (err instanceof Error) message = err.message;
-      setError(message);
-    } finally {
-      setIsLoading(false);  
+      e.preventDefault();
+      setIsLoading(true);
+      setError(null);
+      
+      try {
+        await login({ email, password });
+        navigate(from, { replace: true });
+      } catch (err: unknown) {
+        let message = "Coś poszło nie tak. Spróbuj ponownie.";
+        if (err instanceof Error) message = err.message;
+        setError(message);
+      } finally {
+        setIsLoading(false);  
+      }
     }
-  }
 
-    const loginWithGoogle = useGoogleLogin({
-      flow: "auth-code",
-      onSuccess: async (resp) => {
-        const authCode = resp.code; 
-        console.log("Google auth code:", authCode);
+      const loginWithGoogle = useGoogleLogin({
+        flow: "auth-code",
+        onSuccess: async (codeResponse) => {
+          try {
+            const res = await fetch("https://localhost:7093/auth/google", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ code: codeResponse.code, redirectUri: "postmessage" }),
+            });
 
-        try {
-          const res = await fetch("https://localhost:7093/auth/google", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ AuthCode: authCode }),
-          });
+            if (!res.ok) {
+              const txt = await res.text().catch(() => "");
+              console.error("Backend says:", res.status, txt);
+              setError(`Google 400: ${txt || "brak szczegółów (backend nie zwrócił treści)"}`);
+              return;
+            }
 
-          if (!res.ok) {
-            const errorData = await res.json();
-            console.error("Google login failed:", errorData);
-            setError(`Logowanie przez Google nie powiodło się: ${errorData.message || 'Nieznany błąd'}`);
-            return;
+            const data = await res.json();
+            localStorage.setItem("token", data.token);
+            localStorage.setItem("auth_user", JSON.stringify(data.user));
+            navigate("/account", { replace: true });
+          } catch (e) {
+            console.error("Network/CORS error:", e);
+            setError("Logowanie przez Google nie powiodło się (sieć/CORS).");
           }
+        },
+        onError: () => setError("Logowanie przez Google nie powiodło się."),
+      });
 
-          const data = await res.json();
-          localStorage.setItem("token", data.token);
-          localStorage.setItem("auth_user", JSON.stringify(data.user));
-          navigate("/account");
-        } catch (err) {
-          console.error("Google login failed:", err);
-          setError("Logowanie przez Google nie powiodło się.");
-        }
-      },
-      onError: () => {
-        setError("Google login failed");
-      },
-    });
 
 
   return (
@@ -134,16 +130,58 @@ export default function Login() {
                     </p>
                   </div>
 
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={loginWithGoogle}
-                    disabled={isLoading}
-                    className="mb-5 inline-flex h-11 w-full cursor-pointer items-center justify-center gap-3 rounded-xl border-border/70 bg-background/60 backdrop-blur-md"
-                  >
-                    <GoogleIcon className="h-5 w-5" />
-                    Kontynuuj z Google
-                  </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => loginWithGoogle()}
+                disabled={isLoading}
+                className="mb-5 inline-flex h-11 w-full cursor-pointer items-center justify-center gap-3 rounded-xl border-border/70 bg-background/60 backdrop-blur-md"
+              >
+                <GoogleIcon className="h-5 w-5" />
+                Kontynuuj z Google
+              </Button>
+
+                 <GoogleLogin
+                  onSuccess={async (resp) => {
+                    const idToken = resp.credential;
+                    if (!idToken) { setError("Brak idToken z Google"); return; }
+
+                    try {
+                      const res = await fetch("https://localhost:7093/auth/google", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ code: response.code, redirectUri: "postmessage" }),
+                    });
+                    if (!res.ok) {
+                      const txt = await res.text().catch(() => "");
+                      console.error("Backend says:", res.status, txt);
+                      setError(`Google 400: ${txt || "brak szczegółów"}`);
+                      return;
+                    }
+
+                      if (!res.ok) {
+                        const txt = await res.text();
+                        console.error("Google login backend error:", res.status, txt);
+                        setError(`Logowanie przez Google nie powiodło się (${res.status}).`);
+                        return;
+                      }
+
+                      const data = await res.json();
+                      localStorage.setItem("token", data.token);
+                      localStorage.setItem("auth_user", JSON.stringify(data.user));
+                      navigate("/account");
+                    } catch (e) {
+                      console.error("Network/CORS error:", e);
+                      setError("Logowanie przez Google nie powiodło się (sieć/CORS).");
+                    }
+                  }}
+                  onError={() => setError("Google login failed")}
+                  containerProps={{ className: "w-full h-full [&>div]:w-full [&>div]:h-full [&_iframe]:w-full [&_iframe]:h-full [&_iframe]:opacity-0 cursor-pointer" }}
+                  theme="outline"
+                  size="large"
+                  text="continue_with"
+                  width="350"
+                />
 
                   {/* Divider */}
                   <div className="relative mb-5">
