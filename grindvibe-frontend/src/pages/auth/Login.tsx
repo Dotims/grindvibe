@@ -7,28 +7,37 @@ import { motion } from "framer-motion";
 import { LogIn, Mail, Lock, Eye, EyeOff, HelpCircle } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "../../auth/useAuth";
+import { useGoogleLogin } from "@react-oauth/google";
+import { useSelector } from "react-redux";
+import { googleLoginWithCode, selectAuthStatus } from "../../features/auth/authSlice";
+import { useAppDispatch } from "../../store/hooks";
 
 export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
-
-  const state = location.state as { from?: {pathname: string} } | null;
-  const from =  state?.from?.pathname || "/account";
+  const state = location.state as { from?: { pathname: string } } | null;
+  const from = state?.from?.pathname || "/account";
+  const dispatch = useAppDispatch();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLocalLoading, setIsLocalLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // redux
+  const authStatus = useSelector(selectAuthStatus);
+  const isBusy = isLocalLoading || authStatus === "loading";
+
+  // classic login via your context
   const { login } = useAuth();
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setIsLoading(true);
+    setIsLocalLoading(true);
     setError(null);
-    
+
     try {
       await login({ email, password });
       navigate(from, { replace: true });
@@ -37,14 +46,30 @@ export default function Login() {
       if (err instanceof Error) message = err.message;
       setError(message);
     } finally {
-      setIsLoading(false);  
+      setIsLocalLoading(false);
     }
   }
 
-  function onGoogleSignIn() {
-    // TODO: window.location.href = "/api/auth/google";
-    console.log("Sign in with Google");
-  }
+  // Google OAuth -> dispatch thunk -> state updates -> navigate
+  const loginWithGoogle = useGoogleLogin({
+    flow: "auth-code",
+    onSuccess: async (codeResponse) => {
+      setError(null);
+      try {
+        // unwrap throws on reject and gives payload on success
+        await dispatch(
+          googleLoginWithCode({ code: codeResponse.code, redirectUri: "postmessage" })
+        ).unwrap();
+
+        navigate(from, { replace: true });
+      } catch (e: unknown) {
+        console.error("Google login failed:", e);
+        const msg = e instanceof Error ? e.message : "Logowanie przez Google nie powiodło się.";
+        setError(msg);
+      }
+    },
+    onError: () => setError("Logowanie przez Google nie powiodło się."),
+  });
 
   return (
     <section
@@ -54,18 +79,14 @@ export default function Login() {
         dark:bg-[radial-gradient(1200px_420px_at_10%_-20%,var(--gv-accent)/18_0,transparent_60%),radial-gradient(1200px_420px_at_110%_120%,var(--gv-accent)/18_0,transparent_60%)]
       "
     >
-      {/* Siatka tła (subtelna) */}
+      {/* background grid */}
       <div
         aria-hidden
         className="pointer-events-none fixed inset-0 -z-30 bg-[linear-gradient(to_right,rgba(0,0,0,0.06)_1px,transparent_1px),linear-gradient(to_bottom,rgba(0,0,0,0.06)_1px,transparent_1px)] bg-[size:36px_36px] opacity-[0.16] dark:bg-[linear-gradient(to_right,rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.06)_1px,transparent_1px)] dark:opacity-[0.12]"
       />
 
-      {/* Orby akcentowe — bez fade-in na starcie (fix ghost shadow) */}
-      <motion.div
-        aria-hidden
-        className="pointer-events-none fixed inset-0 -z-20"
-        initial={false}
-      >
+      {/* accent orbs */}
+      <motion.div aria-hidden className="pointer-events-none fixed inset-0 -z-20" initial={false}>
         <motion.div
           className="absolute -top-24 -left-24 h-[28rem] w-[28rem]
                      rounded-full bg-[var(--gv-accent)]/12 blur-3xl
@@ -86,15 +107,15 @@ export default function Login() {
         />
       </motion.div>
 
-      {/* Centrum */}
+      {/* center */}
       <div className="mx-auto flex min-h-[85vh] w-full max-w-6xl items-center justify-center px-6 py-12 md:py-16">
         <div className="w-full max-w-md">
-          {/* Gradient border + glass (izolacja warstwy + stabilne tło) */}
+          {/* glass card */}
           <div className="isolate rounded-2xl bg-gradient-to-b from-white/70 via-white/55 to-white/40 p-[1px] shadow-[0_8px_50px_-12px_rgba(0,0,0,0.35)] backdrop-blur-xl dark:from-zinc-800/55 dark:via-zinc-800/45 dark:to-zinc-900/40 dark:shadow-[0_8px_50px_-12px_rgba(0,0,0,0.7)]">
             <div className="rounded-2xl border border-white/40 bg-white/80 dark:border-white/10 dark:bg-zinc-900/70">
               <Card className="rounded-2xl border-0 bg-transparent shadow-none">
                 <CardContent className="p-6 sm:p-8">
-                  {/* Nagłówek */}
+                  {/* header */}
                   <div className="mb-6 text-center">
                     <h2 className="text-2xl font-bold tracking-tight">Zaloguj się</h2>
                     <p className="mt-2 text-sm text-muted-foreground">
@@ -102,19 +123,19 @@ export default function Login() {
                     </p>
                   </div>
 
-                  {/* Kontynuuj z Google */}
+                  {/* google */}
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={onGoogleSignIn}
-                    disabled={isLoading}
+                    onClick={() => loginWithGoogle()}
+                    disabled={isBusy}
                     className="mb-5 inline-flex h-11 w-full cursor-pointer items-center justify-center gap-3 rounded-xl border-border/70 bg-background/60 backdrop-blur-md"
                   >
                     <GoogleIcon className="h-5 w-5" />
                     Kontynuuj z Google
                   </Button>
 
-                  {/* Divider */}
+                  {/* divider */}
                   <div className="relative mb-5">
                     <div className="absolute inset-0 flex items-center">
                       <span className="h-px w-full bg-gradient-to-r from-transparent via-border to-transparent" />
@@ -126,9 +147,9 @@ export default function Login() {
                     </div>
                   </div>
 
-                  {/* Formularz */}
+                  {/* form */}
                   <form onSubmit={onSubmit} className="grid gap-5">
-                    {/* Email */}
+                    {/* email */}
                     <div className="grid gap-2">
                       <Label htmlFor="email">E-mail</Label>
                       <div className="relative">
@@ -153,7 +174,7 @@ export default function Login() {
                       </div>
                     </div>
 
-                    {/* Hasło */}
+                    {/* password */}
                     <div className="grid gap-2">
                       <Label htmlFor="password">Hasło</Label>
                       <div className="relative">
@@ -186,7 +207,7 @@ export default function Login() {
                       <p className="text-xs text-muted-foreground">Minimum 8 znaków.</p>
                     </div>
 
-                    {/* Remember me + Zapomniałem hasło */}
+                    {/* remember + forgot */}
                     <div className="flex items-center justify-between text-sm">
                       <label className="inline-flex select-none items-center gap-2">
                         <input
@@ -212,17 +233,17 @@ export default function Login() {
                       </Link>
                     </div>
 
-                    {/* Error */}
+                    {/* error */}
                     {error && (
                       <p role="status" aria-live="polite" className="text-sm text-red-600 dark:text-red-400">
                         {error}
                       </p>
                     )}
 
-                    {/* Submit */}
+                    {/* submit */}
                     <Button
                       type="submit"
-                      disabled={isLoading}
+                      disabled={isBusy}
                       className="
                         h-11 w-full cursor-pointer gap-2 rounded-xl
                         bg-[var(--gv-accent)] text-white
@@ -233,11 +254,11 @@ export default function Login() {
                       "
                     >
                       <LogIn size={18} />
-                      {isLoading ? "Logowanie…" : "Zaloguj się"}
+                      {isBusy ? "Logowanie…" : "Zaloguj się"}
                     </Button>
 
                     <p className="text-center text-sm text-muted-foreground">
-                      Nie masz konta?{" "}
+                      Nie masz konta{" "}
                       <Link to="/auth/register" className="text-[var(--gv-accent)] underline-offset-4 hover:underline">
                         Zarejestruj się
                       </Link>
@@ -253,7 +274,7 @@ export default function Login() {
   );
 }
 
-/** Lokalna ikona Google (SVG) – bez zewnętrznych zależności */
+/** local Google SVG */
 function GoogleIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg viewBox="0 0 533.5 544.3" aria-hidden="true" {...props}>

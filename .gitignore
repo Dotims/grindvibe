@@ -46,4 +46,6 @@ next-env.d.ts
 /grindvibe-backend/bin/
 /grindvibe-backend/obj/
 
-
+# Ignore appsettings.json in backend folder
+/appsettings.json
+grindvibe-backend/appsettings.json

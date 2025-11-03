@@ -15,17 +15,25 @@ type AuthState = {
   user: AuthUser | null;
   status: "idle" | "loading" | "succeeded" | "failed";
   error?: string | null;
-  bootstrapped: boolean; 
+  bootstrapped: boolean;
 };
+
+// localStorage hydration
+const tokenFromLS = localStorage.getItem("token");
+const userFromLS: AuthUser | null = (() => {
+  try { return JSON.parse(localStorage.getItem("auth_user") || "null"); } catch { return null; }
+})();
 
 const initialState: AuthState = {
-  token: localStorage.getItem("token"),
-  user: null,
+  token: tokenFromLS,
+  user: userFromLS,
   status: "idle",
   error: null,
-  bootstrapped: false,
+  // if we already have token, we'll fetch /users/me to confirm -> not bootstrapped yet
+  bootstrapped: tokenFromLS ? false : true,
 };
 
+// email/password
 export const loginThunk = createAsyncThunk(
   "auth/login",
   async (payload: { email: string; password: string }) => {
@@ -37,17 +45,34 @@ export const loginThunk = createAsyncThunk(
   }
 );
 
+// register
 export const registerThunk = createAsyncThunk(
-    "auth/register",
-    async (payload: { email: string; password: string; nickname?: string }) => {
-      const res = await api<{ token: string; user: AuthUser }>("/auth/register", {
-        method: "POST",
-        body: JSON.stringify(payload),
-        });
-        return res;
-    }
+  "auth/register",
+  async (payload: { email: string; password: string; nickname?: string }) => {
+    const res = await api<{ token: string; user: AuthUser }>("/auth/register", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+    return res;
+  }
 );
 
+// Google: exchange code->tokens on backend
+export const googleLoginWithCode = createAsyncThunk(
+  "auth/googleLoginWithCode",
+  async (payload: { code: string; redirectUri?: string }) => {
+    const res = await api<{ token: string; user: AuthUser }>("/auth/google", {
+      method: "POST",
+      body: JSON.stringify({
+        code: payload.code,
+        redirectUri: payload.redirectUri ?? "postmessage",
+      }),
+    });
+    return res;
+  }
+);
+
+// bootstrap current session (optional /users/me)
 export const bootstrapAuth = createAsyncThunk("auth/bootstrap", async () => {
   const token = localStorage.getItem("token");
   if (!token) return { user: null as AuthUser | null };
@@ -55,86 +80,108 @@ export const bootstrapAuth = createAsyncThunk("auth/bootstrap", async () => {
   return { user: me };
 });
 
-
 const authSlice = createSlice({
-    name: "auth",
-    initialState,
-    reducers: {
-        setUser(state, action: PayloadAction<AuthUser | null>) {
-            state.user = action.payload;
-        },
-        logout(state) {
-            state.token = null;
-            state.user = null;
-            localStorage.removeItem("token");
-            state.status = "idle";
-            state.error = null;
-            state.bootstrapped = true;
-            localStorage.removeItem("token");
-        },
+  name: "auth",
+  initialState,
+  reducers: {
+    setUser(state, action: PayloadAction<AuthUser | null>) {
+      state.user = action.payload;
+      if (action.payload) localStorage.setItem("auth_user", JSON.stringify(action.payload));
+      else localStorage.removeItem("auth_user");
     },
-    extraReducers: (b) => {
-        b   
-            // login
-            .addCase(loginThunk.pending, (s) => {
-                s.status = "loading";
-                s.error = null;
-            })
-            .addCase(loginThunk.fulfilled, (s, a) => {
-                s.status = "succeeded";
-                s.token = a.payload.token;
-                s.user = a.payload.user;
-                s.error = null;
-                localStorage.setItem("token", a.payload.token);
-            })
-            .addCase(loginThunk.rejected, (s, a) => {
-                s.status = "failed";
-                s.error = a.error.message || "Login failed";
-            })
-
-            // register
-            .addCase(registerThunk.pending, (s) => {
-                s.status = "loading";
-                s.error = null;
-            })
-            .addCase(registerThunk.fulfilled, (s, a) => {
-                s.status = "succeeded";
-                s.token = a.payload.token;
-                s.user = a.payload.user;
-                s.bootstrapped = true;
-                localStorage.setItem("token", a.payload.token);
-            })
-            .addCase(registerThunk.rejected, (s, a) => {
-                s.status = "failed";
-                s.error = (a.error?.message as string) || "Register failed";
-            })
-
-            // bootstrap
-            .addCase(bootstrapAuth.pending, (s) => {
-                s.status = "loading";
-                s.error = null;
-            })
-            .addCase(bootstrapAuth.fulfilled, (s, a) => {
-                s.status = "succeeded";
-                s.user = a.payload.user;
-                s.bootstrapped = true;
-            })
-            .addCase(bootstrapAuth.rejected, (s, a) => {
-                s.status = "failed";
-                s.bootstrapped = true;
-                s.error = (a.error?.message as string) || null;
-            });
+    setToken(state, action: PayloadAction<string | null>) {
+      state.token = action.payload;
+      if (action.payload) localStorage.setItem("token", action.payload);
+      else localStorage.removeItem("token");
     },
+    logout(state) {
+      state.token = null;
+      state.user = null;
+      state.status = "idle";
+      state.error = null;
+      state.bootstrapped = true;
+      localStorage.removeItem("token");
+      localStorage.removeItem("auth_user");
+    },
+  },
+  extraReducers: (b) => {
+    b
+      // login
+      .addCase(loginThunk.pending, (s) => {
+        s.status = "loading"; s.error = null;
+      })
+      .addCase(loginThunk.fulfilled, (s, a) => {
+        s.status = "succeeded";
+        s.token = a.payload.token;
+        s.user = a.payload.user;
+        s.error = null;
+        s.bootstrapped = true;
+        localStorage.setItem("token", a.payload.token);
+        localStorage.setItem("auth_user", JSON.stringify(a.payload.user));
+      })
+      .addCase(loginThunk.rejected, (s, a) => {
+        s.status = "failed"; s.error = a.error.message || "Login failed";
+      })
+
+      // register
+      .addCase(registerThunk.pending, (s) => {
+        s.status = "loading"; s.error = null;
+      })
+      .addCase(registerThunk.fulfilled, (s, a) => {
+        s.status = "succeeded";
+        s.token = a.payload.token;
+        s.user = a.payload.user;
+        s.bootstrapped = true;
+        localStorage.setItem("token", a.payload.token);
+        localStorage.setItem("auth_user", JSON.stringify(a.payload.user));
+      })
+      .addCase(registerThunk.rejected, (s, a) => {
+        s.status = "failed"; s.error = (a.error?.message as string) || "Register failed";
+      })
+
+      // google
+      .addCase(googleLoginWithCode.pending, (s) => {
+        s.status = "loading"; s.error = null;
+      })
+      .addCase(googleLoginWithCode.fulfilled, (s, a) => {
+        s.status = "succeeded";
+        s.token = a.payload.token;
+        s.user = a.payload.user;
+        s.bootstrapped = true;
+        localStorage.setItem("token", a.payload.token);
+        localStorage.setItem("auth_user", JSON.stringify(a.payload.user));
+      })
+      .addCase(googleLoginWithCode.rejected, (s, a) => {
+        s.status = "failed"; s.error = a.error.message || "Google login failed";
+      })
+
+      // bootstrap
+      .addCase(bootstrapAuth.pending, (s) => {
+        s.status = "loading"; s.error = null;
+      })
+      .addCase(bootstrapAuth.fulfilled, (s, a) => {
+        s.status = "succeeded";
+        s.user = a.payload.user;
+        s.bootstrapped = true;
+        if (a.payload.user) localStorage.setItem("auth_user", JSON.stringify(a.payload.user));
+      })
+      .addCase(bootstrapAuth.rejected, (s, a) => {
+        s.status = "failed";
+        s.bootstrapped = true;
+        s.error = (a.error?.message as string) || null;
+      });
+  },
 });
 
-export const authReducer = authSlice.reducer;
-
-export const { setUser, logout } = authSlice.actions;
+export const authReducer = authSlice.reducer; // optional named export
+export const { setUser, setToken, logout } = authSlice.actions;
 
 // selectors
 export const selectAuth = (s: RootState) => s.auth;
 export const selectUser = (s: RootState) => s.auth.user;
 export const selectToken = (s: RootState) => s.auth.token;
 export const selectIsAuthenticated = (s: RootState) => !!s.auth.token;
+export const selectAuthStatus = (s: RootState) => s.auth.status;
+export const selectBootstrapped = (s: RootState) => s.auth.bootstrapped;
 
 export default authSlice.reducer;
