@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { AuthContext } from "./context";
 import type { AuthUser, AuthContextValue, LoginInput, RegisterInput } from "./types";
 
@@ -12,10 +12,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const setSession = ({ user, token }: { user: AuthUser; token: string }) => {
-    setUser(user);
-    setToken(token);
-  };
+  const setSession = useCallback(
+    ({ user, token }: { user: AuthUser; token: string }) => {
+      setUser(user);
+      setToken(token);
+    },
+    [] 
+  );
 
   useEffect(() => {
     let storedToken = localStorage.getItem(STORAGE_KEYS.token);
@@ -62,38 +65,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [user]);
 
   // standard login
-  const login = async ({ email, password }: LoginInput) => {
+  const login = useCallback(async ({ email, password }: LoginInput) => {
     const res = await fetch(`${API_BASE}/auth/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),
       credentials: "omit",
     });
-
     if (!res.ok) throw new Error((await res.text()) || "Login failed");
-
-    const data = await res.json() as { token: string; user: AuthUser };
+    const data = (await res.json()) as { token: string; user: AuthUser };
     setSession({ token: data.token, user: data.user });
-  };
+  }, [setSession]);
 
-  const register = async (input: RegisterInput) => {
+  const register = useCallback(async (input: RegisterInput) => {
     const res = await fetch(`${API_BASE}/auth/register`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(input),
       credentials: "omit",
     });
-
     if (!res.ok) throw new Error((await res.text()) || "Registration failed");
-
-    const data = await res.json() as { token: string; user: AuthUser };
+    const data = (await res.json()) as { token: string; user: AuthUser };
     setSession({ token: data.token, user: data.user });
-  };
+  }, [setSession]);
 
-  const logout = () => {
+  const logout = useCallback(() => {
     setToken(null);
     setUser(null);
-  };
+  }, []);
 
   const value = useMemo<AuthContextValue & { setSession: (p: { user: AuthUser; token: string }) => void }>(
     () => ({
@@ -107,7 +106,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser,     
       setSession,  
     }),
-    [user, token, loading]
+    [user, token, loading, login, register, logout, setUser, setSession]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
