@@ -10,6 +10,7 @@ import RequireAuth from "../guards/RequireAuth";
 import Account  from "../pages/auth/Account";
 import Exercises from "../pages/exercises/index";
 import ExerciseDetail from "../pages/exercises/Details";
+import RoutinesPage from "../pages/routines";
 
 export default function AppRouter() {
   return (
@@ -29,9 +30,15 @@ export default function AppRouter() {
         <Route path="/exercises" element={ <Exercises />} />
         <Route path="/exercises/:id" element={ <ExerciseDetail />} />
 
-        {/* <Route path="/auth/reset/:token" element={<ResetPasswordPage />} />   */}
+        <Route 
+          path="/routines"
+          element={ <RoutinesPage />}
+        >
+          <Route path="/routines" element={<RoutinesPage />} />
+        </Route>
 
-
+        <Route path="/routines" element={ <RoutinesPage />} />
+        
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
 
