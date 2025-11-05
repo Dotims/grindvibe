@@ -1,6 +1,5 @@
 import { useState } from "react";
-import { PlusCircle, Dumbbell } from "lucide-react";
-import { Button } from "../../components/ui/button";
+import { PlusCircle, Search, Dumbbell, ClipboardList } from "lucide-react";
 import { Card, CardContent } from "../../components/ui/card";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
@@ -10,58 +9,92 @@ type Routine = {
   name: string;
   description?: string;
   totalExercises: number;
-  createdAt: string;
 };
 
 export default function RoutinesPage() {
-  const [routines, setRoutines] = useState<Routine[]>([
+  const [routines] = useState<Routine[]>([
     {
       id: 1,
       name: "Push–Pull–Legs",
       description: "Klasyczny podział na partie mięśniowe, idealny do budowania siły.",
       totalExercises: 15,
-      createdAt: "2025-10-21",
     },
     {
       id: 2,
       name: "Full Body 3x w tygodniu",
-      description: "Trening całego ciała dla początkujących.",
+      description: "Trening całego ciała dla początkujących z równym obciążeniem.",
       totalExercises: 9,
-      createdAt: "2025-11-02",
     },
   ]);
+
+  const actionCards = [
+    {
+      icon: <PlusCircle className="h-8 w-8 text-[color(display-p3_0.35_0.60_1)] mb-1" />,
+      title: "Utwórz nową rutynę",
+      desc: "Zbuduj własny plan krok po kroku",
+      to: "/routines/new",
+    },
+    {
+      icon: <Search className="h-8 w-8 text-[color(display-p3_0.35_0.60_1)] mb-1" />,
+      title: "Wyszukaj rutyny",
+      desc: "Przeglądaj gotowe plany i kopiuj je",
+      to: "/routines/discover", // utworzymy później
+    },
+    {
+      icon: <ClipboardList className="h-8 w-8 text-[color(display-p3_0.35_0.60_1)] mb-1" />,
+      title: "Szybki trening",
+      desc: "Zapisz bieżący workout bez rutyny",
+      to: "/workout/quick", // utworzymy później
+    },
+  ];
 
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-10 bg-[var(--gv-bg)] text-[var(--gv-text)]">
       {/* HEADER */}
-      <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Routines</h1>
-          <p className="text-sm text-muted-foreground">
-            Twórz i zarządzaj swoimi planami treningowymi. Monitoruj progres i buduj konsekwencję.
-          </p>
-        </div>
-
-        <Link to="/routines/new">
-          <Button
-            variant="default"
-            size="sm"
-            className="gap-2 rounded-full px-4 py-2 shadow-[0_2px_12px_rgba(0,0,0,0.25)]"
-          >
-            <PlusCircle className="h-4 w-4" />
-            Nowa rutyna
-          </Button>
-        </Link>
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold tracking-tight">Routines</h1>
+        <p className="text-sm text-muted-foreground">
+          Twórz własne plany, przeglądaj gotowe rutyny lub rozpocznij szybki trening.
+        </p>
       </div>
 
-      {/* ROUTINES LIST */}
+      {/* ACTION CARDS */}
+      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 mb-10">
+        {actionCards.map((a) => (
+          <Link key={a.to} to={a.to}>
+            <motion.div
+              whileHover={{ scale: 1.03 }}
+              transition={{ type: "spring", stiffness: 300, damping: 20 }}
+              className="group h-[175px] relative overflow-hidden rounded-3xl border
+                         border-[color-mix(in_oklab,var(--gv-bg)_80%,#fff_20%)]
+                         bg-[color-mix(in_oklab,var(--gv-bg)_80%,#fff_20%)]
+                         hover:bg-[color-mix(in_oklab,var(--gv-bg)_70%,#fff_30%)]
+                         shadow-[0_6px_20px_-6px_rgba(0,0,0,0.35)]
+                         hover:shadow-[0_8px_24px_-6px_rgba(0,0,0,0.45)]
+                         transition-all duration-300 ease-out cursor-pointer grid place-items-center text-center p-4"
+            >
+              <div className="flex flex-col items-center justify-center">
+                {a.icon}
+                <h3 className="text-base font-semibold">{a.title}</h3>
+                <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{a.desc}</p>
+              </div>
+            </motion.div>
+          </Link>
+        ))}
+      </div>
+
+      {/* USER ROUTINES */}
+      <div className="mb-4">
+        <h2 className="text-lg font-semibold mb-3">Twoje rutyny</h2>
+      </div>
+
       {routines.length === 0 ? (
         <div className="grid place-items-center rounded-xl border border-dashed p-10 text-center text-sm text-muted-foreground">
           Nie masz jeszcze żadnych rutyn.<br />
-          <span className="text-[var(--gv-accent)]">Kliknij „Nowa rutyna”</span>, aby zacząć.
+          <span className="text-[color(display-p3_0.35_0.60_1)]">Utwórz pierwszą powyżej!</span>
         </div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {routines.map((r) => (
             <motion.div
               key={r.id}
@@ -71,25 +104,28 @@ export default function RoutinesPage() {
             >
               <Link to={`/routines/${r.id}`} className="block">
                 <Card
-                    className="relative overflow-hidden rounded-3xl border border-[color-mix(in_oklab,var(--gv-bg)_85%,#fff_15%)]
-                                bg-[color-mix(in_oklab,var(--gv-bg)_92%,#fff_8%)]
-                                shadow-[0_4px_18px_-6px_rgba(0,0,0,0.35)]
-                                hover:shadow-[0_6px_24px_-6px_rgba(0,0,0,0.45)]
-                                transition-all duration-200 ease-out"
+                  className="relative overflow-hidden rounded-3xl border
+                             border-[color-mix(in_oklab,var(--gv-bg)_80%,#fff_20%)]
+                             bg-[color-mix(in_oklab,var(--gv-bg)_90%,#fff_10%)]
+                             shadow-[0_4px_18px_-6px_rgba(0,0,0,0.35)]
+                             hover:shadow-[0_6px_24px_-6px_rgba(0,0,0,0.45)]
+                             transition-all duration-200 ease-out h-[175px] flex flex-col"
                 >
-                  <CardContent className="p-5">
-                    <div className="mb-3 flex items-center justify-between">
-                      <h3 className="text-lg font-semibold">{r.name}</h3>
-                      <Dumbbell className="h-5 w-5 text-muted-foreground/70" />
+                  <CardContent className="p-4 flex flex-col flex-1">
+                    <div className="mb-2 flex items-center justify-between">
+                      <h3 className="text-base font-semibold line-clamp-1">{r.name}</h3>
+                      <Dumbbell className="h-4 w-4 text-muted-foreground/70" />
                     </div>
+
                     {r.description && (
-                      <p className="mb-3 line-clamp-3 text-sm text-muted-foreground/90">
+                      <p className="mb-2 line-clamp-2 text-sm text-muted-foreground/90 flex-1">
                         {r.description}
                       </p>
                     )}
-                    <div className="flex items-center justify-between text-xs text-muted-foreground/70">
+
+                    <div className="mt-auto flex items-center justify-between text-xs text-muted-foreground/70">
                       <span>{r.totalExercises} ćwiczeń</span>
-                      <span>{new Date(r.createdAt).toLocaleDateString("pl-PL")}</span>
+                      <span className="text-[color(display-p3_0.35_0.60_1)] font-medium">Zobacz</span>
                     </div>
                   </CardContent>
                 </Card>
