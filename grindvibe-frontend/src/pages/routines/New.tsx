@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Trash2, Save, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, Trash2, Save, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 import { Input } from "../../components/ui/input";
@@ -28,56 +28,65 @@ import {
   type DraftExercise,
 } from "../../features/routines/routinesSlice";
 
-// Numeric field with null support
-function NumberField({
+/* ---------- Helpers: per-exercise meta stored in notes JSON ---------- */
+type SetType = "normal" | "warmup" | "dropset";
+type SetRow = { weight: number | null; reps: number | null; rpe?: number | null; restSeconds?: number | null };
+type NotesMeta = { type: SetType; sets: SetRow[] };
+
+// tolerant parser: supports legacy "type:..." string
+function parseMeta(notes?: string | null): NotesMeta {
+  if (!notes) return { type: "normal", sets: [{ weight: null, reps: null, rpe: null, restSeconds: null }] };
+  try {
+    const obj = JSON.parse(notes) as Partial<NotesMeta>;
+    const type: SetType = (obj.type as SetType) ?? "normal";
+    const sets = Array.isArray(obj.sets) && obj.sets.length > 0
+      ? obj.sets.map(s => ({
+          weight: s?.weight ?? null,
+          reps: s?.reps ?? null,
+          rpe: s?.rpe ?? null,
+          restSeconds: s?.restSeconds ?? null,
+        }))
+      : [{ weight: null, reps: null, rpe: null, restSeconds: null }];
+    return { type, sets };
+  } catch {
+    const m = notes.match(/type:(normal|warmup|dropset)/i);
+    const type: SetType = ((m?.[1]?.toLowerCase() as SetType) ?? "normal");
+    return { type, sets: [{ weight: null, reps: null, rpe: null, restSeconds: null }] };
+  }
+}
+function writeMeta(meta: NotesMeta): string {
+  return JSON.stringify(meta);
+}
+
+/* ---------- Small numeric input ---------- */
+function Num({
   label,
   value,
   onChange,
+  placeholder,
 }: {
   label: string;
-  value?: number | null;
+  value: number | null | undefined;
   onChange: (v: number | null) => void;
+  placeholder?: string;
 }) {
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handle = (e: React.ChangeEvent<HTMLInputElement>) => {
     const raw = e.target.value;
     onChange(raw === "" ? null : Number(raw));
   };
   return (
     <div>
       <label className="text-xs block mb-1">{label}</label>
-      <Input type="number" value={value ?? ""} onChange={handleChange} className="h-9" />
+      <Input type="number" value={value ?? ""} onChange={handle} placeholder={placeholder} className="h-9" />
     </div>
   );
 }
 
-// Set type encoded in notes
-type SetType = "normal" | "warmup" | "dropset";
-const parseSetType = (notes?: string | null): SetType => {
-  if (!notes) return "normal";
-  const m = notes.match(/type:(normal|warmup|dropset)/i);
-  return (m?.[1]?.toLowerCase() as SetType) || "normal";
-};
-const writeSetType = (notes: string | null | undefined, t: SetType): string => {
-  const base = (notes ?? "").replace(/type:(normal|warmup|dropset)/gi, "").trim();
-  return [base, `type:${t}`].filter(Boolean).join(" ").trim();
-};
-
-// Small tile with thumbnail + add on click
-function ExerciseTile({
-  item,
-  onAdd,
-}: { item: ExerciseDto; onAdd: (e: ExerciseDto) => void }) {
+/* ---------- Exercise tile (left column) ---------- */
+function ExerciseTile({ item, onAdd }: { item: ExerciseDto; onAdd: (e: ExerciseDto) => void }) {
   const body =
-    item.bodyPart ||
-    item.primaryMuscles?.[0] ||
-    (item.secondaryMuscles?.[0] ?? "Exercise");
-
-  const initials = item.name
-    .split(" ")
-    .slice(0, 2)
-    .map((w) => w[0])
-    .join("")
-    .toUpperCase();
+    item.bodyPart || item.primaryMuscles?.[0] || (item.secondaryMuscles?.[0] ?? "Exercise");
+  const initials = item.name.split(" ").slice(0, 2).map((w) => w[0]).join("").toUpperCase();
 
   return (
     <motion.button
@@ -94,24 +103,16 @@ function ExerciseTile({
       <div className="flex items-center gap-3">
         <div className="h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-[color-mix(in_oklab,var(--gv-bg)_75%,#fff_25%)] grid place-items-center">
           {item.imageUrl ? (
-            <img
-              src={item.imageUrl}
-              alt={item.name}
-              className="h-full w-full object-cover"
-              loading="lazy"
-              decoding="async"
-            />
+            <img src={item.imageUrl} alt={item.name} className="h-full w-full object-cover" loading="lazy" decoding="async" />
           ) : (
             <span className="text-xs font-semibold opacity-80">{initials}</span>
           )}
         </div>
-
         <div className="min-w-0">
           <div className="font-medium leading-tight line-clamp-2">{item.name}</div>
           <div className="text-[11px] text-muted-foreground mt-0.5">{body}</div>
         </div>
       </div>
-
       <div className="mt-2 text-[12px] font-medium text-[color(display-p3_0.35_0.60_1)] opacity-90">
         Kliknij, aby dodać
       </div>
@@ -119,12 +120,13 @@ function ExerciseTile({
   );
 }
 
+/* ---------- Page ---------- */
 export default function NewRoutinePage() {
-  // Draft (ensure at least one day)
   const draft = useAppSelector((s) => s.routines);
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
 
+  // ensure "Day 1" exists
   useEffect(() => {
     if (!draft.days || draft.days.length === 0) {
       dispatch(addDay({ name: "Day 1" }));
@@ -133,62 +135,48 @@ export default function NewRoutinePage() {
 
   const day: DraftDay | undefined = draft.days[0];
 
-  // Search + browse state
+  // browse/search
   const [q, setQ] = useState<string>("");
   const [page, setPage] = useState<number>(1);
   const [pageSize] = useState<number>(12);
   const [result, setResult] = useState<PagedResult<ExerciseDto> | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
 
-  // Save + error
+  // save/error
   const [saveLoading, setSaveLoading] = useState<boolean>(false);
   const [error, setError] = useState<ApiError | null>(null);
 
-  // Flash animation for last added entry
+  // flash on add
   const [addedStamp, setAddedStamp] = useState<number>(0);
 
-  // Load/browse exercises
+  // load list
   useEffect(() => {
-    const params: SearchExercisesParams = {
-      q,
-      page,
-      pageSize,
-      muscle: [],
-      equipment: [],
-    };
-
+    const params: SearchExercisesParams = { q, page, pageSize, muscle: [], equipment: [] };
     const cached = getCachedSearch(params);
     if (cached) {
       setResult(cached);
       return;
     }
-
     const ctl = new AbortController();
     setLoading(true);
-
     (async () => {
       try {
         const res = await fetchAndCacheSearch(params, ctl.signal);
         setResult(res);
       } catch (err) {
-        if (!(err instanceof DOMException && err.name === "AbortError")) {
-          console.error(err);
-        }
+        if (!(err instanceof DOMException && err.name === "AbortError")) console.error(err);
       } finally {
         setLoading(false);
       }
     })();
-
     return () => ctl.abort();
   }, [q, page, pageSize]);
 
-  // Can save
   const canSave = useMemo(
     () => draft.name.trim().length >= 2 && !!day && day.exercises.length > 0,
     [draft, day]
   );
 
-  // Save routine
   const onSave = async (): Promise<void> => {
     if (!day) return;
     setError(null);
@@ -209,12 +197,11 @@ export default function NewRoutinePage() {
               targetRepsMax: e.targetRepsMax ?? null,
               targetRpe: e.targetRpe ?? null,
               restSeconds: e.restSeconds ?? null,
-              notes: e.notes ?? null,
+              notes: e.notes ?? null, // contains JSON meta with sets
             })),
           },
         ],
       };
-
       const saved = await createRoutine(payload);
       dispatch(resetDraft());
       navigate(`/routines/${saved.id}`);
@@ -226,37 +213,63 @@ export default function NewRoutinePage() {
     }
   };
 
-  // Add exercise with defaults + trigger flash
+  // add exercise with default meta (1 set)
   const addExercise = (x: ExerciseDto) => {
     if (!day) return;
+    const meta: NotesMeta = { type: "normal", sets: [{ weight: null, reps: null, rpe: null, restSeconds: null }] };
     dispatch(
       addExerciseToDay({
         dayId: day.id,
         exercise: {
           exerciseId: String(x.id),
           name: x.name,
-          targetSets: 3,
-          targetRepsMin: 8,
-          targetRepsMax: 12,
+          targetSets: null,
+          targetRepsMin: null,
+          targetRepsMax: null,
           targetRpe: null,
-          restSeconds: 90,
-          notes: "type:normal",
+          restSeconds: null,
+          notes: writeMeta(meta),
         },
       })
     );
     setAddedStamp(Date.now());
   };
 
-  // Field handlers
-  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    dispatch(setName(e.target.value));
+  // field handlers
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => setName && dispatch(setName(e.target.value));
+  const handleDescChange = (e: React.ChangeEvent<HTMLInputElement>) => dispatch(setDescription(e.target.value));
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => { setPage(1); setQ(e.target.value); };
+
+  // set operations
+  const addSet = (ex: DraftExercise) => {
+    if (!day) return;
+    const meta = parseMeta(ex.notes);
+    meta.sets.push({ weight: null, reps: null, rpe: null, restSeconds: null });
+    dispatch(updateExercise({ dayId: day.id, exId: ex.id, patch: { notes: writeMeta(meta) } }));
   };
-  const handleDescChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    dispatch(setDescription(e.target.value));
+  const removeSet = (ex: DraftExercise, idx: number) => {
+    if (!day) return;
+    const meta = parseMeta(ex.notes);
+    if (meta.sets.length <= 1) return; // keep at least 1
+    meta.sets.splice(idx, 1);
+    dispatch(updateExercise({ dayId: day.id, exId: ex.id, patch: { notes: writeMeta(meta) } }));
   };
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setPage(1);
-    setQ(e.target.value);
+  const updateSetField = (
+    ex: DraftExercise,
+    idx: number,
+    field: keyof SetRow,
+    value: number | null
+  ) => {
+    if (!day) return;
+    const meta = parseMeta(ex.notes);
+    meta.sets[idx] = { ...meta.sets[idx], [field]: value };
+    dispatch(updateExercise({ dayId: day.id, exId: ex.id, patch: { notes: writeMeta(meta) } }));
+  };
+  const updateSetType = (ex: DraftExercise, type: SetType) => {
+    if (!day) return;
+    const meta = parseMeta(ex.notes);
+    meta.type = type;
+    dispatch(updateExercise({ dayId: day.id, exId: ex.id, patch: { notes: writeMeta(meta) } }));
   };
 
   const totalPages = result ? Math.max(1, Math.ceil(result.total / pageSize)) : 1;
@@ -268,7 +281,7 @@ export default function NewRoutinePage() {
         <div className="flex-1">
           <h1 className="text-2xl font-bold tracking-tight">Nowa rutyna</h1>
           <p className="text-sm text-muted-foreground">
-            Dodawaj ćwiczenia z listy lub wyszukaj. Ustaw serie, powtórzenia, RPE i typ serii.
+            Dodawaj ćwiczenia i konfiguruj serie (waga, powtórzenia, RPE, przerwy).
           </p>
         </div>
         <Button onClick={onSave} disabled={!canSave || saveLoading} className="gap-2 rounded-full">
@@ -293,30 +306,21 @@ export default function NewRoutinePage() {
           </div>
           <div>
             <label className="text-sm mb-1 block">Opis (opcjonalnie)</label>
-            <Input
-              value={draft.description ?? ""}
-              onChange={handleDescChange}
-              placeholder="Krótki opis planu"
-            />
+            <Input value={draft.description ?? ""} onChange={handleDescChange} placeholder="Krótki opis planu" />
           </div>
         </CardContent>
       </Card>
 
       {/* 2/5 : 3/5 layout */}
       <div className="grid gap-6 lg:grid-cols-5">
-        {/* LEFT (2/5): browse + search */}
+        {/* LEFT (2/5) */}
         <Card className="rounded-2xl border bg-background/60 shadow-[0_6px_24px_-10px_rgba(0,0,0,0.35)] lg:col-span-2 lg:sticky lg:top-24 max-h-[70vh] overflow-auto">
           <CardContent className="p-4">
             <div className="mb-4">
               <label className="text-sm mb-1 block">Szukaj ćwiczenia</label>
               <div className="relative">
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 opacity-70" />
-                <Input
-                  placeholder="np. Bench press…"
-                  className="pl-8"
-                  value={q}
-                  onChange={handleSearchChange}
-                />
+                <Input placeholder="np. Bench press…" className="pl-8" value={q} onChange={handleSearchChange} />
               </div>
             </div>
 
@@ -340,7 +344,6 @@ export default function NewRoutinePage() {
                   ))}
                 </div>
 
-                {/* Pager */}
                 <div className="mt-5 flex items-center justify-center gap-3">
                   <Button
                     variant="outline"
@@ -371,7 +374,7 @@ export default function NewRoutinePage() {
           </CardContent>
         </Card>
 
-        {/* RIGHT (3/5): current routine */}
+        {/* RIGHT (3/5) */}
         <Card className="rounded-2xl border bg-background/60 shadow-[0_6px_24px_-10px_rgba(0,0,0,0.35)] lg:col-span-3">
           <CardContent className="p-4">
             <h2 className="text-lg font-semibold mb-3">Ćwiczenia w rutynie</h2>
@@ -384,7 +387,7 @@ export default function NewRoutinePage() {
               <div className="space-y-3">
                 <AnimatePresence initial={false}>
                   {day.exercises.map((ex: DraftExercise, idx: number) => {
-                    const currentType = parseSetType(ex.notes);
+                    const meta = parseMeta(ex.notes);
                     const isLast = idx === day.exercises.length - 1;
                     const shouldFlash = isLast && Date.now() - addedStamp < 1200;
 
@@ -397,68 +400,99 @@ export default function NewRoutinePage() {
                         transition={{ duration: shouldFlash ? 0.8 : 0.2, ease: "easeOut" }}
                         className="rounded-xl border p-3 bg-background/70"
                       >
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="font-medium line-clamp-2">{ex.name}</div>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => dispatch(removeExercise({ dayId: day.id, exId: ex.id }))}
-                            aria-label="Usuń ćwiczenie"
-                          >
-                            <Trash2 className="h-5 w-5" />
-                          </Button>
-                        </div>
-
-                        <div className="mt-3 grid grid-cols-2 sm:grid-cols-6 gap-2">
-                          <NumberField
-                            label="Serie"
-                            value={ex.targetSets}
-                            onChange={(v) =>
-                              dispatch(updateExercise({ dayId: day.id, exId: ex.id, patch: { targetSets: v } }))
-                            }
-                          />
-                          <NumberField
-                            label="Powt. min"
-                            value={ex.targetRepsMin}
-                            onChange={(v) =>
-                              dispatch(updateExercise({ dayId: day.id, exId: ex.id, patch: { targetRepsMin: v } }))
-                            }
-                          />
-                          <NumberField
-                            label="Powt. max"
-                            value={ex.targetRepsMax}
-                            onChange={(v) =>
-                              dispatch(updateExercise({ dayId: day.id, exId: ex.id, patch: { targetRepsMax: v } }))
-                            }
-                          />
-                          <NumberField
-                            label="RPE"
-                            value={ex.targetRpe}
-                            onChange={(v) =>
-                              dispatch(updateExercise({ dayId: day.id, exId: ex.id, patch: { targetRpe: v } }))
-                            }
-                          />
-                          <NumberField
-                            label="Przerwa (s)"
-                            value={ex.restSeconds}
-                            onChange={(v) =>
-                              dispatch(updateExercise({ dayId: day.id, exId: ex.id, patch: { restSeconds: v } }))
-                            }
-                          />
-                          <div>
-                            <label className="text-xs block mb-1">Typ serii</label>
-                            <select
-                              value={currentType}
-                              onChange={(e) => {
-                                const next = writeSetType(ex.notes, e.target.value as SetType);
-                                dispatch(updateExercise({ dayId: day.id, exId: ex.id, patch: { notes: next } }));
-                              }}
-                              className="h-9 w-full rounded-md border bg-background px-2 text-sm"
+                        <div className="flex flex-col gap-2">
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="font-medium line-clamp-2">{ex.name}</div>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => dispatch(removeExercise({ dayId: day.id, exId: ex.id }))}
+                              aria-label="Usuń ćwiczenie"
                             >
-                              <option value="normal">Normal</option>
-                              <option value="warmup">Warm-up</option>
-                              <option value="dropset">Drop-set</option>
-                            </select>
+                              <Trash2 className="h-5 w-5" />
+                            </Button>
+                          </div>
+
+                          {/* Series type */}
+                          <div className="grid grid-cols-2 sm:grid-cols-6 gap-2">
+                            <div className="col-span-2 sm:col-span-2">
+                              <label className="text-xs block mb-1">Typ serii</label>
+                              <select
+                                value={meta.type}
+                                onChange={(e) => updateSetType(ex, e.target.value as SetType)}
+                                className="h-9 w-full rounded-md border bg-background px-2 text-sm"
+                              >
+                                <option value="normal">Normal</option>
+                                <option value="warmup">Warm-up</option>
+                                <option value="dropset">Drop-set</option>
+                              </select>
+                            </div>
+                          </div>
+
+                          {/* Sets list */}
+                          <div className="mt-1 space-y-2">
+                            <AnimatePresence initial={false}>
+                              {meta.sets.map((s, sIdx) => (
+                                <motion.div
+                                  key={`${ex.id}-set-${sIdx}`}
+                                  initial={{ height: 0, opacity: 0 }}
+                                  animate={{ height: "auto", opacity: 1 }}
+                                  exit={{ height: 0, opacity: 0 }}
+                                  transition={{ duration: 0.18 }}
+                                  className="rounded-lg border bg-background/60 p-3"
+                                >
+                                  <div className="mb-2 flex items-center justify-between">
+                                    <span className="text-xs font-medium opacity-70">Seria #{sIdx + 1}</span>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => removeSet(ex, sIdx)}
+                                      disabled={meta.sets.length <= 1}
+                                      className="h-8 px-2 text-xs"
+                                    >
+                                      Usuń
+                                    </Button>
+                                  </div>
+                                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                    <Num
+                                      label="Ciężar (kg)"
+                                      value={s.weight ?? null}
+                                      onChange={(v) => updateSetField(ex, sIdx, "weight", v)}
+                                      placeholder="np. 60"
+                                    />
+                                    <Num
+                                      label="Powtórzenia"
+                                      value={s.reps ?? null}
+                                      onChange={(v) => updateSetField(ex, sIdx, "reps", v)}
+                                      placeholder="np. 8"
+                                    />
+                                    <Num
+                                      label="RPE"
+                                      value={s.rpe ?? null}
+                                      onChange={(v) => updateSetField(ex, sIdx, "rpe", v)}
+                                      placeholder="np. 8"
+                                    />
+                                    <Num
+                                      label="Przerwa (s)"
+                                      value={s.restSeconds ?? null}
+                                      onChange={(v) => updateSetField(ex, sIdx, "restSeconds", v)}
+                                      placeholder="np. 90"
+                                    />
+                                  </div>
+                                </motion.div>
+                              ))}
+                            </AnimatePresence>
+
+                            <div>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => addSet(ex)}
+                                className="mt-1 gap-2 rounded-full !pr-4"
+                              >
+                                <Plus className="h-4 w-4" /> Dodaj serię
+                              </Button>
+                            </div>
                           </div>
                         </div>
                       </motion.div>
