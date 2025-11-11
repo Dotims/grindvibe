@@ -1,28 +1,24 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Plus, Trash2, Save } from "lucide-react";
+import { Search, Trash2, Save, ChevronLeft, ChevronRight } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 import { Input } from "../../components/ui/input";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent } from "../../components/ui/card";
 import { Notice } from "../../components/ui/Notice";
-import type { JSX } from "react";
 
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
-// import type { RootState } from "../../store/store";
 
-import type { ExerciseDto, SearchExercisesParams } from "../../api/exercises";
+import type { ExerciseDto, SearchExercisesParams, PagedResult } from "../../api/exercises";
 import { fetchAndCacheSearch, getCachedSearch } from "../../api/exercises";
 
 import { isApiError, type ApiError } from "../../api/client";
 import { createRoutine, type RoutineCreateDto } from "../../api/routines";
 
-
 import {
   addDay,
   addExerciseToDay,
-  removeDay,
-  renameDay,
   resetDraft,
   setDescription,
   setName,
@@ -32,7 +28,7 @@ import {
   type DraftExercise,
 } from "../../features/routines/routinesSlice";
 
-// Simple numeric field with null support
+// Numeric field with null support
 function NumberField({
   label,
   value,
@@ -54,37 +50,116 @@ function NumberField({
   );
 }
 
-export default function NewRoutinePage(): JSX.Element {
-  // Draft state from Redux
+// Set type encoded in notes
+type SetType = "normal" | "warmup" | "dropset";
+const parseSetType = (notes?: string | null): SetType => {
+  if (!notes) return "normal";
+  const m = notes.match(/type:(normal|warmup|dropset)/i);
+  return (m?.[1]?.toLowerCase() as SetType) || "normal";
+};
+const writeSetType = (notes: string | null | undefined, t: SetType): string => {
+  const base = (notes ?? "").replace(/type:(normal|warmup|dropset)/gi, "").trim();
+  return [base, `type:${t}`].filter(Boolean).join(" ").trim();
+};
+
+// Small tile with thumbnail + add on click
+function ExerciseTile({
+  item,
+  onAdd,
+}: { item: ExerciseDto; onAdd: (e: ExerciseDto) => void }) {
+  const body =
+    item.bodyPart ||
+    item.primaryMuscles?.[0] ||
+    (item.secondaryMuscles?.[0] ?? "Exercise");
+
+  const initials = item.name
+    .split(" ")
+    .slice(0, 2)
+    .map((w) => w[0])
+    .join("")
+    .toUpperCase();
+
+  return (
+    <motion.button
+      type="button"
+      whileHover={{ scale: 1.02 }}
+      whileTap={{ scale: 0.98 }}
+      onClick={() => onAdd(item)}
+      className="group w-full text-left cursor-pointer rounded-2xl border border-border/60
+                 bg-[color-mix(in_oklab,var(--gv-bg)_88%,#fff_12%)]
+                 hover:bg-[color-mix(in_oklab,var(--gv-bg)_80%,#fff_20%)]
+                 transition shadow-[0_6px_20px_-10px_rgba(0,0,0,0.35)] p-3"
+      aria-label={`Add ${item.name}`}
+    >
+      <div className="flex items-center gap-3">
+        <div className="h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-[color-mix(in_oklab,var(--gv-bg)_75%,#fff_25%)] grid place-items-center">
+          {item.imageUrl ? (
+            <img
+              src={item.imageUrl}
+              alt={item.name}
+              className="h-full w-full object-cover"
+              loading="lazy"
+              decoding="async"
+            />
+          ) : (
+            <span className="text-xs font-semibold opacity-80">{initials}</span>
+          )}
+        </div>
+
+        <div className="min-w-0">
+          <div className="font-medium leading-tight line-clamp-2">{item.name}</div>
+          <div className="text-[11px] text-muted-foreground mt-0.5">{body}</div>
+        </div>
+      </div>
+
+      <div className="mt-2 text-[12px] font-medium text-[color(display-p3_0.35_0.60_1)] opacity-90">
+        Kliknij, aby dodać
+      </div>
+    </motion.button>
+  );
+}
+
+export default function NewRoutinePage() {
+  // Draft (ensure at least one day)
   const draft = useAppSelector((s) => s.routines);
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
 
-  // Local UI state
+  useEffect(() => {
+    if (!draft.days || draft.days.length === 0) {
+      dispatch(addDay({ name: "Day 1" }));
+    }
+  }, [dispatch, draft.days]);
+
+  const day: DraftDay | undefined = draft.days[0];
+
+  // Search + browse state
   const [q, setQ] = useState<string>("");
-  const [results, setResults] = useState<ExerciseDto[]>([]);
+  const [page, setPage] = useState<number>(1);
+  const [pageSize] = useState<number>(12);
+  const [result, setResult] = useState<PagedResult<ExerciseDto> | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
+
+  // Save + error
   const [saveLoading, setSaveLoading] = useState<boolean>(false);
   const [error, setError] = useState<ApiError | null>(null);
 
-  // Search exercises (respects your SearchExercisesParams with string[] filters)
+  // Flash animation for last added entry
+  const [addedStamp, setAddedStamp] = useState<number>(0);
+
+  // Load/browse exercises
   useEffect(() => {
     const params: SearchExercisesParams = {
       q,
-      page: 1,
-      pageSize: 10,
+      page,
+      pageSize,
       muscle: [],
       equipment: [],
     };
 
     const cached = getCachedSearch(params);
     if (cached) {
-      setResults(cached.items);
-      return;
-    }
-
-    if (!q || q.trim().length < 2) {
-      setResults([]);
+      setResult(cached);
       return;
     }
 
@@ -94,11 +169,9 @@ export default function NewRoutinePage(): JSX.Element {
     (async () => {
       try {
         const res = await fetchAndCacheSearch(params, ctl.signal);
-        setResults(res.items);
+        setResult(res);
       } catch (err) {
-        // Ignore abort errors; log others
         if (!(err instanceof DOMException && err.name === "AbortError")) {
-          // eslint-disable-next-line no-console
           console.error(err);
         }
       } finally {
@@ -107,36 +180,39 @@ export default function NewRoutinePage(): JSX.Element {
     })();
 
     return () => ctl.abort();
-  }, [q]);
+  }, [q, page, pageSize]);
 
-  // Basic save guard: needs name and at least 1 exercise in any day
-  const canSave = useMemo<boolean>(
-    () => draft.name.trim().length >= 2 && draft.days.some((d: DraftDay) => d.exercises.length > 0),
-    [draft]
+  // Can save
+  const canSave = useMemo(
+    () => draft.name.trim().length >= 2 && !!day && day.exercises.length > 0,
+    [draft, day]
   );
 
-  // Persist routine
+  // Save routine
   const onSave = async (): Promise<void> => {
+    if (!day) return;
     setError(null);
     setSaveLoading(true);
     try {
       const payload: RoutineCreateDto = {
         name: draft.name.trim(),
         description: draft.description ?? "",
-        days: draft.days.map((d: DraftDay) => ({
-          name: d.name,
-          notes: d.notes ?? "",
-          exercises: d.exercises.map((e: DraftExercise) => ({
-            exerciseId: e.exerciseId,
-            order: e.order,
-            targetSets: e.targetSets ?? null,
-            targetRepsMin: e.targetRepsMin ?? null,
-            targetRepsMax: e.targetRepsMax ?? null,
-            targetRpe: e.targetRpe ?? null,
-            restSeconds: e.restSeconds ?? null,
-            notes: e.notes ?? null,
-          })),
-        })),
+        days: [
+          {
+            name: "Day 1",
+            notes: "",
+            exercises: day.exercises.map((e: DraftExercise) => ({
+              exerciseId: e.exerciseId,
+              order: e.order,
+              targetSets: e.targetSets ?? null,
+              targetRepsMin: e.targetRepsMin ?? null,
+              targetRepsMax: e.targetRepsMax ?? null,
+              targetRpe: e.targetRpe ?? null,
+              restSeconds: e.restSeconds ?? null,
+              notes: e.notes ?? null,
+            })),
+          },
+        ],
       };
 
       const saved = await createRoutine(payload);
@@ -150,7 +226,28 @@ export default function NewRoutinePage(): JSX.Element {
     }
   };
 
-  // Handlers with explicit event types
+  // Add exercise with defaults + trigger flash
+  const addExercise = (x: ExerciseDto) => {
+    if (!day) return;
+    dispatch(
+      addExerciseToDay({
+        dayId: day.id,
+        exercise: {
+          exerciseId: String(x.id),
+          name: x.name,
+          targetSets: 3,
+          targetRepsMin: 8,
+          targetRepsMax: 12,
+          targetRpe: null,
+          restSeconds: 90,
+          notes: "type:normal",
+        },
+      })
+    );
+    setAddedStamp(Date.now());
+  };
+
+  // Field handlers
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     dispatch(setName(e.target.value));
   };
@@ -158,11 +255,11 @@ export default function NewRoutinePage(): JSX.Element {
     dispatch(setDescription(e.target.value));
   };
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setPage(1);
     setQ(e.target.value);
   };
-  const handleDayRename =
-    (dayId: string) => (e: React.ChangeEvent<HTMLInputElement>) =>
-      dispatch(renameDay({ dayId, name: e.target.value }));
+
+  const totalPages = result ? Math.max(1, Math.ceil(result.total / pageSize)) : 1;
 
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-10 bg-[var(--gv-bg)] text-[var(--gv-text)]">
@@ -170,7 +267,9 @@ export default function NewRoutinePage(): JSX.Element {
       <div className="mb-8 flex items-start justify-between gap-4">
         <div className="flex-1">
           <h1 className="text-2xl font-bold tracking-tight">Nowa rutyna</h1>
-          <p className="text-sm text-muted-foreground">Nazwij plan i dodaj ćwiczenia do dni.</p>
+          <p className="text-sm text-muted-foreground">
+            Dodawaj ćwiczenia z listy lub wyszukaj. Ustaw serie, powtórzenia, RPE i typ serii.
+          </p>
         </div>
         <Button onClick={onSave} disabled={!canSave || saveLoading} className="gap-2 rounded-full">
           <Save className="h-4 w-4" />
@@ -186,7 +285,7 @@ export default function NewRoutinePage(): JSX.Element {
       )}
 
       {/* Meta */}
-      <Card className="mb-6 rounded-2xl border bg-background/60">
+      <Card className="mb-6 rounded-2xl border bg-background/60 shadow-[0_6px_24px_-10px_rgba(0,0,0,0.35)]">
         <CardContent className="p-4 grid gap-3 sm:grid-cols-2">
           <div>
             <label className="text-sm mb-1 block">Nazwa</label>
@@ -203,140 +302,173 @@ export default function NewRoutinePage(): JSX.Element {
         </CardContent>
       </Card>
 
-      {/* Days */}
-      <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-lg font-semibold">Dni treningowe</h2>
-        <Button variant="outline" size="sm" className="rounded-full gap-2" onClick={() => dispatch(addDay({}))}>
-          <Plus className="h-4 w-4" /> Dodaj dzień
-        </Button>
-      </div>
-
-      <div className="grid gap-5 sm:grid-cols-2">
-        {draft.days.map((d: DraftDay) => (
-          <Card key={d.id} className="rounded-2xl border bg-background/60">
-            <CardContent className="p-4">
-              <div className="mb-3 flex items-center justify-between gap-3">
-                <Input value={d.name} onChange={handleDayRename(d.id)} className="font-semibold" />
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => dispatch(removeDay({ dayId: d.id }))}
-                  aria-label="Usuń dzień"
-                >
-                  <Trash2 className="h-5 w-5" />
-                </Button>
+      {/* 2/5 : 3/5 layout */}
+      <div className="grid gap-6 lg:grid-cols-5">
+        {/* LEFT (2/5): browse + search */}
+        <Card className="rounded-2xl border bg-background/60 shadow-[0_6px_24px_-10px_rgba(0,0,0,0.35)] lg:col-span-2 lg:sticky lg:top-24 max-h-[70vh] overflow-auto">
+          <CardContent className="p-4">
+            <div className="mb-4">
+              <label className="text-sm mb-1 block">Szukaj ćwiczenia</label>
+              <div className="relative">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 opacity-70" />
+                <Input
+                  placeholder="np. Bench press…"
+                  className="pl-8"
+                  value={q}
+                  onChange={handleSearchChange}
+                />
               </div>
+            </div>
 
-              {/* Exercises in day */}
-              <div className="space-y-3">
-                {d.exercises.map((ex: DraftExercise) => (
-                  <div key={ex.id} className="rounded-xl border p-3 bg-background/70">
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="font-medium">{ex.name}</div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => dispatch(removeExercise({ dayId: d.id, exId: ex.id }))}
-                        aria-label="Usuń ćwiczenie"
-                      >
-                        <Trash2 className="h-5 w-5" />
-                      </Button>
-                    </div>
-
-                    <div className="mt-3 grid grid-cols-2 sm:grid-cols-5 gap-2">
-                      <NumberField
-                        label="Serie"
-                        value={ex.targetSets}
-                        onChange={(v) =>
-                          dispatch(updateExercise({ dayId: d.id, exId: ex.id, patch: { targetSets: v } }))
-                        }
-                      />
-                      <NumberField
-                        label="Powt. min"
-                        value={ex.targetRepsMin}
-                        onChange={(v) =>
-                          dispatch(updateExercise({ dayId: d.id, exId: ex.id, patch: { targetRepsMin: v } }))
-                        }
-                      />
-                      <NumberField
-                        label="Powt. max"
-                        value={ex.targetRepsMax}
-                        onChange={(v) =>
-                          dispatch(updateExercise({ dayId: d.id, exId: ex.id, patch: { targetRepsMax: v } }))
-                        }
-                      />
-                      <NumberField
-                        label="RPE"
-                        value={ex.targetRpe}
-                        onChange={(v) =>
-                          dispatch(updateExercise({ dayId: d.id, exId: ex.id, patch: { targetRpe: v } }))
-                        }
-                      />
-                      <NumberField
-                        label="Przerwa (s)"
-                        value={ex.restSeconds}
-                        onChange={(v) =>
-                          dispatch(updateExercise({ dayId: d.id, exId: ex.id, patch: { restSeconds: v } }))
-                        }
-                      />
-                    </div>
-                  </div>
-                ))}
+            {loading && (
+              <div className="grid place-items-center rounded-xl border border-dashed p-8 text-sm text-muted-foreground">
+                Ładowanie ćwiczeń…
               </div>
+            )}
 
-              {/* Exercise search for the day */}
-              <div className="mt-4">
-                <label className="text-sm mb-1 block">Dodaj ćwiczenie</label>
-                <div className="relative">
-                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 opacity-70" />
-                  <Input
-                    placeholder="Szukaj ćwiczenia (EN)…"
-                    className="pl-8"
-                    value={q}
-                    onChange={handleSearchChange}
-                  />
+            {!loading && result && result.items.length === 0 && (
+              <div className="grid place-items-center rounded-xl border border-dashed p-8 text-sm text-muted-foreground">
+                Brak wyników.
+              </div>
+            )}
+
+            {!loading && result && result.items.length > 0 && (
+              <>
+                <div className="grid gap-3">
+                  {result.items.map((it) => (
+                    <ExerciseTile key={it.id} item={it} onAdd={addExercise} />
+                  ))}
                 </div>
 
-                {loading && <div className="mt-2 text-sm text-muted-foreground">Szukam…</div>}
-                {!loading && q.trim().length >= 2 && results.length === 0 && (
-                  <div className="mt-2 text-sm text-muted-foreground">Brak wyników</div>
-                )}
+                {/* Pager */}
+                <div className="mt-5 flex items-center justify-center gap-3">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    disabled={page <= 1}
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    className="rounded-full h-8 w-8"
+                    aria-label="Prev"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <span className="text-sm">
+                    {page} / {totalPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    disabled={!result || page >= totalPages}
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    className="rounded-full h-8 w-8"
+                    aria-label="Next"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </>
+            )}
+          </CardContent>
+        </Card>
 
-                {!loading && results.length > 0 && (
-                  <div className="mt-3 grid gap-2">
-                    {results.slice(0, 6).map((r: ExerciseDto) => (
-                      <button
-                        key={r.id}
-                        type="button"
-                        onClick={() =>
-                          dispatch(
-                            addExerciseToDay({
-                              dayId: d.id,
-                              exercise: {
-                                exerciseId: String(r.id),
-                                name: r.name,
-                                targetSets: 3,
-                                targetRepsMin: 8,
-                                targetRepsMax: 12,
-                                targetRpe: null,
-                                restSeconds: 90,
-                                notes: "",
-                              },
-                            })
-                          )
-                        }
-                        className="text-left rounded-lg border px-3 py-2 hover:bg-accent/40 transition"
-                      >
-                        <div className="font-medium">{r.name}</div>
-                        <div className="text-xs text-muted-foreground">{r.bodyPart ?? ""}</div>
-                      </button>
-                    ))}
-                  </div>
-                )}
+        {/* RIGHT (3/5): current routine */}
+        <Card className="rounded-2xl border bg-background/60 shadow-[0_6px_24px_-10px_rgba(0,0,0,0.35)] lg:col-span-3">
+          <CardContent className="p-4">
+            <h2 className="text-lg font-semibold mb-3">Ćwiczenia w rutynie</h2>
+
+            {!day || day.exercises.length === 0 ? (
+              <div className="rounded-xl border border-dashed p-8 text-sm text-muted-foreground">
+                Brak ćwiczeń. Kliknij kafelek po lewej, aby dodać.
               </div>
-            </CardContent>
-          </Card>
-        ))}
+            ) : (
+              <div className="space-y-3">
+                <AnimatePresence initial={false}>
+                  {day.exercises.map((ex: DraftExercise, idx: number) => {
+                    const currentType = parseSetType(ex.notes);
+                    const isLast = idx === day.exercises.length - 1;
+                    const shouldFlash = isLast && Date.now() - addedStamp < 1200;
+
+                    return (
+                      <motion.div
+                        key={ex.id}
+                        initial={shouldFlash ? { backgroundColor: "rgba(80,160,255,0.15)" } : { opacity: 1 }}
+                        animate={{ backgroundColor: "rgba(0,0,0,0)", opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: shouldFlash ? 0.8 : 0.2, ease: "easeOut" }}
+                        className="rounded-xl border p-3 bg-background/70"
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="font-medium line-clamp-2">{ex.name}</div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => dispatch(removeExercise({ dayId: day.id, exId: ex.id }))}
+                            aria-label="Usuń ćwiczenie"
+                          >
+                            <Trash2 className="h-5 w-5" />
+                          </Button>
+                        </div>
+
+                        <div className="mt-3 grid grid-cols-2 sm:grid-cols-6 gap-2">
+                          <NumberField
+                            label="Serie"
+                            value={ex.targetSets}
+                            onChange={(v) =>
+                              dispatch(updateExercise({ dayId: day.id, exId: ex.id, patch: { targetSets: v } }))
+                            }
+                          />
+                          <NumberField
+                            label="Powt. min"
+                            value={ex.targetRepsMin}
+                            onChange={(v) =>
+                              dispatch(updateExercise({ dayId: day.id, exId: ex.id, patch: { targetRepsMin: v } }))
+                            }
+                          />
+                          <NumberField
+                            label="Powt. max"
+                            value={ex.targetRepsMax}
+                            onChange={(v) =>
+                              dispatch(updateExercise({ dayId: day.id, exId: ex.id, patch: { targetRepsMax: v } }))
+                            }
+                          />
+                          <NumberField
+                            label="RPE"
+                            value={ex.targetRpe}
+                            onChange={(v) =>
+                              dispatch(updateExercise({ dayId: day.id, exId: ex.id, patch: { targetRpe: v } }))
+                            }
+                          />
+                          <NumberField
+                            label="Przerwa (s)"
+                            value={ex.restSeconds}
+                            onChange={(v) =>
+                              dispatch(updateExercise({ dayId: day.id, exId: ex.id, patch: { restSeconds: v } }))
+                            }
+                          />
+                          <div>
+                            <label className="text-xs block mb-1">Typ serii</label>
+                            <select
+                              value={currentType}
+                              onChange={(e) => {
+                                const next = writeSetType(ex.notes, e.target.value as SetType);
+                                dispatch(updateExercise({ dayId: day.id, exId: ex.id, patch: { notes: next } }));
+                              }}
+                              className="h-9 w-full rounded-md border bg-background px-2 text-sm"
+                            >
+                              <option value="normal">Normal</option>
+                              <option value="warmup">Warm-up</option>
+                              <option value="dropset">Drop-set</option>
+                            </select>
+                          </div>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </AnimatePresence>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </main>
   );
