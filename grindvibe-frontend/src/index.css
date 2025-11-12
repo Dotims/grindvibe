@@ -61,6 +61,27 @@
   body { @apply min-h-screen antialiased transition-colors duration-300; }
 }
 
+/* Dark popup for native <select> (Chrome/Edge/Firefox/Safari) */
+select option,
+select optgroup {
+  background-color: var(--gv-bg);
+  color: var(--gv-text);
+}
+
+/* High-contrast focus + caret spacing */
+.gv-select {
+  color: var(--gv-text);
+  background-color: var(--gv-bg);
+  border-color: color-mix(in oklab, var(--gv-text) 12%, transparent);
+  padding-right: 2.25rem; /* miejsce na caret */
+}
+.gv-select:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgb(220 38 38 / 0.7);
+  border-color: rgb(220 38 38 / 0.6);
+}
+
+
 /* Utility for accent text */
 .gv-accent {
   color: var(--gv-accent);
