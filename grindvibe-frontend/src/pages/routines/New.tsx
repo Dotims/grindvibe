@@ -42,30 +42,60 @@ function pickGifUrl(x: { imageUrl?: string; videoUrl?: string | null }): string 
 
 /* ---------- Per-exercise meta stored in notes JSON ---------- */
 type SetType = "normal" | "warmup" | "dropset";
-type SetRow = { weight: number | null; repsMin: number | null; repsMax: number | null; rpe?: number | null; restSeconds?: number | null };
-type NotesMeta = { type: SetType; sets: SetRow[] };
+type SetRow = {
+  weight: number | null;
+  repsMin: number | null;
+  repsMax: number | null;
+  rpe?: number | null;
+  restSeconds?: number | null;
+};
+type NotesMeta = { type: SetType; sets: SetRow[]; thumb?: string | null };
+
+const toNum = (v: unknown): number | null =>
+  typeof v === "number" ? v :
+  typeof v === "string" && v.trim() !== "" && !Number.isNaN(Number(v)) ? Number(v) :
+  null;
+
+function normalizeSet(s: unknown): SetRow {
+  const o = (typeof s === "object" && s !== null) ? (s as Record<string, unknown>) : {};
+  return {
+    weight: toNum(o.weight),
+    repsMin: toNum(o.repsMin ?? o.reps),
+    repsMax: toNum(o.repsMax ?? o.reps),
+    rpe: toNum(o.rpe),
+    restSeconds: toNum(o.restSeconds),
+  };
+}
 
 function parseMeta(notes?: string | null): NotesMeta {
-  if (!notes) return { type: "normal", sets: [{ weight: null, repsMin: null, repsMax: null, rpe: null, restSeconds: null }] };
+  if (!notes) {
+    return { type: "normal", thumb: null, sets: [normalizeSet({})] };
+  }
   try {
-    const obj = JSON.parse(notes) as Partial<NotesMeta>;
-    const type: SetType = (obj.type as SetType) ?? "normal";
-    const sets = Array.isArray(obj.sets) && obj.sets.length > 0
-      ? obj.sets.map((s: any) => ({
-          weight: s?.weight ?? null,
-          repsMin: s?.repsMin ?? (s?.reps ?? null),
-          repsMax: s?.repsMax ?? (s?.reps ?? null),
-          rpe: s?.rpe ?? null,
-          restSeconds: s?.restSeconds ?? null,
-        }))
-      : [{ weight: null, repsMin: null, repsMax: null, rpe: null, restSeconds: null }];
-    return { type, sets };
+    const raw = JSON.parse(notes) as unknown;
+    if (typeof raw !== "object" || raw === null) {
+      return { type: "normal", thumb: null, sets: [normalizeSet({})] };
+    }
+    const obj = raw as Record<string, unknown>;
+    const typeStr = obj.type;
+    const type: SetType =
+      typeStr === "warmup" || typeStr === "dropset" || typeStr === "normal" ? typeStr : "normal";
+
+    const thumb =
+      typeof obj.thumb === "string" && obj.thumb.length > 0 ? obj.thumb : null;
+
+    const setsUnknown = (obj.sets as unknown);
+    const sets: SetRow[] = Array.isArray(setsUnknown) && setsUnknown.length > 0
+      ? setsUnknown.map(normalizeSet)
+      : [normalizeSet({})];
+
+    return { type, thumb, sets };
   } catch {
-    const m = notes.match(/type:(normal|warmup|dropset)/i);
-    const type: SetType = ((m?.[1]?.toLowerCase() as SetType) ?? "normal");
-    return { type, sets: [{ weight: null, repsMin: null, repsMax: null, rpe: null, restSeconds: null }] };
+    // legacy fallback
+    return { type: "normal", thumb: null, sets: [normalizeSet({})] };
   }
 }
+
 function writeMeta(meta: NotesMeta): string {
   return JSON.stringify(meta);
 }
@@ -234,25 +264,23 @@ export default function NewRoutinePage() {
     if (!day) return;
     const meta: NotesMeta = {
       type: "normal",
+      thumb: pickGifUrl(x),    
       sets: [{ weight: null, repsMin: null, repsMax: null, rpe: null, restSeconds: null }],
     };
-    dispatch(
-      addExerciseToDay({
-        dayId: day.id,
-        exercise: {
-          exerciseId: String(x.id),
-          name: x.name,
-          // @ts-ignore UI-only thumbnail
-          imageUrl: pickGifUrl(x),
-          targetSets: null,
-          targetRepsMin: null,
-          targetRepsMax: null,
-          targetRpe: null,
-          restSeconds: null,
-          notes: writeMeta(meta),
-        },
-      })
-    );
+
+    dispatch(addExerciseToDay({
+      dayId: day.id,
+      exercise: {
+        exerciseId: String(x.id),
+        name: x.name,
+        targetSets: null,
+        targetRepsMin: null,
+        targetRepsMax: null,
+        targetRpe: null,
+        restSeconds: null,
+        notes: writeMeta(meta),     
+      },
+    }));
     setAddedStamp(Date.now());
   };
 
@@ -394,7 +422,7 @@ export default function NewRoutinePage() {
                 const meta = parseMeta(ex.notes);
                 const isLast = idx === day.exercises.length - 1;
                 const shouldFlash = isLast && Date.now() - addedStamp < 1100;
-                const img: string | null = ex.imageUrl ?? null;
+                const img: string | null = meta.thumb ?? null;
 
                 return (
                     <motion.div
