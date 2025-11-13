@@ -9,10 +9,7 @@ import { Card, CardContent } from "../../components/ui/card";
 import { Notice } from "../../components/ui/Notice";
 
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
-
-import type { ExerciseDto, SearchExercisesParams, PagedResult } from "../../api/exercises";
-import { fetchAndCacheSearch, getCachedSearch } from "../../api/exercises";
-
+import type { ExerciseDto } from "../../api/exercises";
 import { isApiError, type ApiError } from "../../api/client";
 import { createRoutine, type RoutineCreateDto } from "../../api/routines";
 
@@ -28,157 +25,18 @@ import {
   type DraftExercise,
 } from "../../features/routines/routinesSlice";
 
-/* ---------- Accent ---------- */
-const ACCENT = "#dc2626";
+import { useExerciseSearch } from "../../hooks/useExerciseSearch";
+import ExerciseTile from "../../components/routines/ExerciseTile";
+import Num from "../../components/routines/Num";
+import { ACCENT, parseMeta, writeMeta, type NotesMeta, type SetRow, type SetType } from "../../lib/routinesMeta";
 
-/* ---------- GIF helpers ---------- */
-function pickGifUrl(x: { imageUrl?: string; videoUrl?: string | null }): string | null {
-  const cands = [x.videoUrl ?? "", x.imageUrl ?? ""].filter(Boolean);
-  for (const u of cands) {
-    if (u.toLowerCase().endsWith(".gif")) return u;
-  }
-  return cands[0] || null; // fallback to whatever we have
-}
-
-/* ---------- Per-exercise meta stored in notes JSON ---------- */
-type SetType = "normal" | "warmup" | "dropset";
-type SetRow = {
-  weight: number | null;
-  repsMin: number | null;
-  repsMax: number | null;
-  rpe?: number | null;
-  restSeconds?: number | null;
-};
-type NotesMeta = { type: SetType; sets: SetRow[]; thumb?: string | null };
-
-const toNum = (v: unknown): number | null =>
-  typeof v === "number" ? v :
-  typeof v === "string" && v.trim() !== "" && !Number.isNaN(Number(v)) ? Number(v) :
-  null;
-
-function normalizeSet(s: unknown): SetRow {
-  const o = (typeof s === "object" && s !== null) ? (s as Record<string, unknown>) : {};
-  return {
-    weight: toNum(o.weight),
-    repsMin: toNum(o.repsMin ?? o.reps),
-    repsMax: toNum(o.repsMax ?? o.reps),
-    rpe: toNum(o.rpe),
-    restSeconds: toNum(o.restSeconds),
-  };
-}
-
-function parseMeta(notes?: string | null): NotesMeta {
-  if (!notes) {
-    return { type: "normal", thumb: null, sets: [normalizeSet({})] };
-  }
-  try {
-    const raw = JSON.parse(notes) as unknown;
-    if (typeof raw !== "object" || raw === null) {
-      return { type: "normal", thumb: null, sets: [normalizeSet({})] };
-    }
-    const obj = raw as Record<string, unknown>;
-    const typeStr = obj.type;
-    const type: SetType =
-      typeStr === "warmup" || typeStr === "dropset" || typeStr === "normal" ? typeStr : "normal";
-
-    const thumb =
-      typeof obj.thumb === "string" && obj.thumb.length > 0 ? obj.thumb : null;
-
-    const setsUnknown = (obj.sets as unknown);
-    const sets: SetRow[] = Array.isArray(setsUnknown) && setsUnknown.length > 0
-      ? setsUnknown.map(normalizeSet)
-      : [normalizeSet({})];
-
-    return { type, thumb, sets };
-  } catch {
-    // legacy fallback
-    return { type: "normal", thumb: null, sets: [normalizeSet({})] };
-  }
-}
-
-function writeMeta(meta: NotesMeta): string {
-  return JSON.stringify(meta);
-}
-
-/* ---------- Small numeric input (pill style) ---------- */
-function Num({
-  label,
-  value,
-  onChange,
-  placeholder,
-}: {
-  label: string;
-  value: number | null | undefined;
-  onChange: (v: number | null) => void;
-  placeholder?: string;
-}) {
-  const handle = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const raw = e.target.value;
-    onChange(raw === "" ? null : Number(raw));
-  };
-  return (
-    <div>
-      <label className="text-xs block mb-1">{label}</label>
-      <Input
-        type="number"
-        value={value ?? ""}
-        onChange={handle}
-        placeholder={placeholder}
-        className="h-9 rounded-full border-border/40 focus-visible:ring-2"
-        style={{ outline: "none", boxShadow: "none" }}
-      />
-    </div>
-  );
-}
-
-/* ---------- Exercise tile (left column) ---------- */
-function ExerciseTile({ item, onAdd }: { item: ExerciseDto; onAdd: (e: ExerciseDto) => void }) {
-  const body = item.bodyPart || item.primaryMuscles?.[0] || (item.secondaryMuscles?.[0] ?? "Exercise");
-  const initials = item.name.split(" ").slice(0, 2).map((w) => w[0]).join("").toUpperCase();
-  const gif = pickGifUrl(item);
-
-  return (
-    <motion.button
-      type="button"
-      whileHover={{ scale: 1.02 }}
-      whileTap={{ scale: 0.98 }}
-      onClick={() => onAdd(item)}
-      className="group w-full text-left cursor-pointer rounded-2xl border border-border/50
-                 bg-[color-mix(in_oklab,var(--gv-bg)_88%,#fff_12%)]
-                 hover:bg-[color-mix(in_oklab,var(--gv-bg)_80%,#fff_20%)]
-                 transition shadow-[0_8px_28px_-14px_rgba(0,0,0,0.45)] p-3"
-      aria-label={`Add ${item.name}`}
-    >
-      <div className="flex items-center gap-3">
-        <div className="h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-[color-mix(in_oklab,var(--gv-bg)_75%,#fff_25%)] grid place-items-center">
-          {gif ? (
-            <img src={gif} alt={item.name} className="h-full w-full object-cover" loading="lazy" decoding="async" />
-          ) : (
-            <span className="text-xs font-semibold opacity-80">{initials}</span>
-          )}
-        </div>
-        <div className="min-w-0">
-          <div className="font-semibold leading-tight line-clamp-2">{item.name}</div>
-          <div className="text-[11px] text-muted-foreground mt-0.5">{body}</div>
-        </div>
-      </div>
-      <div className="mt-2 text-[12px] font-medium" style={{ color: ACCENT }}>
-        Kliknij, aby dodać
-      </div>
-    </motion.button>
-  );
-}
-
-/* ---------- Page ---------- */
 export default function NewRoutinePage() {
   const draft = useAppSelector((s) => s.routines);
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!draft.days || draft.days.length === 0) {
-      dispatch(addDay({ name: "Day 1" }));
-    }
+    if (!draft.days || draft.days.length === 0) dispatch(addDay({ name: "Day 1" }));
   }, [dispatch, draft.days]);
 
   const day: DraftDay | undefined = draft.days[0];
@@ -186,9 +44,8 @@ export default function NewRoutinePage() {
   // browse/search
   const [q, setQ] = useState<string>("");
   const [page, setPage] = useState<number>(1);
-  const [pageSize] = useState<number>(12);
-  const [result, setResult] = useState<PagedResult<ExerciseDto> | null>(null);
-  const [loading, setLoading] = useState<boolean>(false);
+  const pageSize = 12;
+  const { result, loading, totalPages } = useExerciseSearch(q, page, pageSize);
 
   // save/error
   const [saveLoading, setSaveLoading] = useState<boolean>(false);
@@ -196,28 +53,6 @@ export default function NewRoutinePage() {
 
   // flash on add
   const [addedStamp, setAddedStamp] = useState<number>(0);
-
-  useEffect(() => {
-    const params: SearchExercisesParams = { q, page, pageSize, muscle: [], equipment: [] };
-    const cached = getCachedSearch(params);
-    if (cached) {
-      setResult(cached);
-      return;
-    }
-    const ctl = new AbortController();
-    setLoading(true);
-    (async () => {
-      try {
-        const res = await fetchAndCacheSearch(params, ctl.signal);
-        setResult(res);
-      } catch (err) {
-        if (!(err instanceof DOMException && err.name === "AbortError")) console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    })();
-    return () => ctl.abort();
-  }, [q, page, pageSize]);
 
   const canSave = useMemo(
     () => draft.name.trim().length >= 2 && !!day && day.exercises.length > 0,
@@ -244,7 +79,7 @@ export default function NewRoutinePage() {
               targetRepsMax: e.targetRepsMax ?? null,
               targetRpe: e.targetRpe ?? null,
               restSeconds: e.restSeconds ?? null,
-              notes: e.notes ?? null, // JSON with sets (min/max)
+              notes: e.notes ?? null,
             })),
           },
         ],
@@ -264,23 +99,26 @@ export default function NewRoutinePage() {
     if (!day) return;
     const meta: NotesMeta = {
       type: "normal",
-      thumb: pickGifUrl(x),    
+      thumb: (x.videoUrl ?? x.imageUrl ?? null) && (x.videoUrl?.toLowerCase().endsWith(".gif") || x.imageUrl?.toLowerCase().endsWith(".gif"))
+        ? (x.videoUrl ?? x.imageUrl ?? null)
+        : (x.videoUrl ?? x.imageUrl ?? null),
       sets: [{ weight: null, repsMin: null, repsMax: null, rpe: null, restSeconds: null }],
     };
-
-    dispatch(addExerciseToDay({
-      dayId: day.id,
-      exercise: {
-        exerciseId: String(x.id),
-        name: x.name,
-        targetSets: null,
-        targetRepsMin: null,
-        targetRepsMax: null,
-        targetRpe: null,
-        restSeconds: null,
-        notes: writeMeta(meta),     
-      },
-    }));
+    dispatch(
+      addExerciseToDay({
+        dayId: day.id,
+        exercise: {
+          exerciseId: String(x.id),
+          name: x.name,
+          targetSets: null,
+          targetRepsMin: null,
+          targetRepsMax: null,
+          targetRpe: null,
+          restSeconds: null,
+          notes: writeMeta(meta),
+        },
+      })
+    );
     setAddedStamp(Date.now());
   };
 
@@ -314,8 +152,6 @@ export default function NewRoutinePage() {
     meta.type = type;
     dispatch(updateExercise({ dayId: day.id, exId: ex.id, patch: { notes: writeMeta(meta) } }));
   };
-
-  const totalPages = result ? Math.max(1, Math.ceil(result.total / pageSize)) : 1;
 
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-10 bg-[var(--gv-bg)] text-[var(--gv-text)]">
@@ -425,41 +261,33 @@ export default function NewRoutinePage() {
                 const img: string | null = meta.thumb ?? null;
 
                 return (
-                    <motion.div
-                      key={ex.id}
-                      initial={{ y: 8, opacity: 0, scale: 0.98 }}
-                      animate={{
-                        y: 0,
-                        opacity: 1,
-                        scale: 1,
-                        boxShadow: "0 10px 30px -12px rgba(0,0,0,0.35)",
-                        filter: shouldFlash ? "drop-shadow(0 0 0 rgba(220,38,38,0))" : "none",
-                      }}
-                      transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-                      exit={{ opacity: 0, height: 0, scale: 0.98, y: -6, filter: "blur(2px)" }}
-                      className="relative rounded-2xl border border-border/40 bg-[color-mix(in_oklab,var(--gv-bg)_92%,#fff_8%)] overflow-hidden"
-                    >
-                    {/* Accent stripe */}
+                  <motion.div
+                    key={ex.id}
+                    initial={{ y: 8, opacity: 0, scale: 0.98 }}
+                    animate={{
+                      y: 0,
+                      opacity: 1,
+                      scale: 1,
+                      boxShadow: "0 10px 30px -12px rgba(0,0,0,0.35)",
+                      filter: shouldFlash ? "drop-shadow(0 0 0 rgba(220,38,38,0))" : "none",
+                    }}
+                    transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+                    exit={{ opacity: 0, height: 0, scale: 0.98, y: -6, filter: "blur(2px)" }}
+                    className="relative rounded-2xl border border-border/40 bg-[color-mix(in_oklab,var(--gv-bg)_92%,#fff_8%)] overflow-hidden"
+                  >
                     <div className="absolute left-0 top-0 h-full w-[4px]" style={{ backgroundColor: ACCENT }} />
 
                     <div className="p-3 sm:p-4">
                       <div className="flex items-start gap-3">
-                        {/* Thumbnail (GIF if available) */}
-                        <div className="shrink-0 overflow-hidden rounded-xl bg-[color-mix(in_oklab,var(--gv-bg)_80%,#fff_20%)]
-                                        h-16 w-16 md:h-20 md:w-20">
+                        {/* GIF */}
+                        <div className="shrink-0 overflow-hidden rounded-xl bg-[color-mix(in_oklab,var(--gv-bg)_80%,#fff_20%)] h-16 w-16 md:h-20 md:w-20">
                           {img ? (
-                            <img
-                              src={img}
-                              alt={ex.name}
-                              className="h-full w-full object-contain"
-                              loading="lazy"
-                            />
+                            <img src={img} alt={ex.name} className="h-full w-full object-contain" loading="lazy" />
                           ) : (
                             <div className="grid h-full w-full place-items-center text-xs opacity-70">GIF</div>
                           )}
                         </div>
 
-                        {/* Title + remove */}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start justify-between gap-3">
                             <h3 className="font-semibold leading-tight tracking-tight line-clamp-2" style={{ color: ACCENT }}>
@@ -477,7 +305,7 @@ export default function NewRoutinePage() {
                             </Button>
                           </div>
 
-                          {/* Series type (styled select) */}
+                          {/* series type */}
                           <div className="mt-2 grid grid-cols-2 sm:grid-cols-6 gap-2">
                             <div className="col-span-2 sm:col-span-2">
                               <label className="text-xs block mb-1">Typ serii</label>
@@ -494,12 +322,11 @@ export default function NewRoutinePage() {
                                 <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 opacity-70" />
                               </div>
                             </div>
-
                           </div>
                         </div>
                       </div>
 
-                      {/* Sets */}
+                      {/* Serie */}
                       <div className="mt-3 space-y-2">
                         <AnimatePresence initial={false}>
                           {meta.sets.map((s, sIdx) => (
@@ -526,36 +353,11 @@ export default function NewRoutinePage() {
                                 </button>
                               </div>
                               <div className="grid grid-cols-2 lg:grid-cols-5 gap-2">
-                                <Num
-                                  label="Ciężar (kg)"
-                                  value={s.weight ?? null}
-                                  onChange={(v) => updateSetField(ex, sIdx, "weight", v)}
-                                  placeholder="np. 60"
-                                />
-                                <Num
-                                  label="Powt. MIN"
-                                  value={s.repsMin ?? null}
-                                  onChange={(v) => updateSetField(ex, sIdx, "repsMin", v)}
-                                  placeholder="np. 8"
-                                />
-                                <Num
-                                  label="Powt. MAX"
-                                  value={s.repsMax ?? null}
-                                  onChange={(v) => updateSetField(ex, sIdx, "repsMax", v)}
-                                  placeholder="np. 12"
-                                />
-                                <Num
-                                  label="RPE"
-                                  value={s.rpe ?? null}
-                                  onChange={(v) => updateSetField(ex, sIdx, "rpe", v)}
-                                  placeholder="np. 8"
-                                />
-                                <Num
-                                  label="Przerwa (s)"
-                                  value={s.restSeconds ?? null}
-                                  onChange={(v) => updateSetField(ex, sIdx, "restSeconds", v)}
-                                  placeholder="np. 90"
-                                />
+                                <Num label="Ciężar (kg)" value={s.weight ?? null} onChange={(v) => updateSetField(ex, sIdx, "weight", v)} placeholder="np. 60" />
+                                <Num label="Powt. MIN" value={s.repsMin ?? null} onChange={(v) => updateSetField(ex, sIdx, "repsMin", v)} placeholder="np. 8" />
+                                <Num label="Powt. MAX" value={s.repsMax ?? null} onChange={(v) => updateSetField(ex, sIdx, "repsMax", v)} placeholder="np. 12" />
+                                <Num label="RPE" value={s.rpe ?? null} onChange={(v) => updateSetField(ex, sIdx, "rpe", v)} placeholder="np. 8" />
+                                <Num label="Przerwa (s)" value={s.restSeconds ?? null} onChange={(v) => updateSetField(ex, sIdx, "restSeconds", v)} placeholder="np. 90" />
                               </div>
                             </motion.div>
                           ))}
@@ -565,8 +367,7 @@ export default function NewRoutinePage() {
                           <button
                             type="button"
                             onClick={() => addSet(ex)}
-                            className="mt-1 inline-flex items-center gap-2 rounded-full border px-3 py-2 text-sm
-                                      cursor-pointer transition"
+                            className="mt-1 inline-flex items-center gap-2 rounded-full border px-3 py-2 text-sm cursor-pointer transition"
                             style={{ borderColor: ACCENT, color: ACCENT }}
                           >
                             <Plus className="h-4 w-4" /> Dodaj serię
