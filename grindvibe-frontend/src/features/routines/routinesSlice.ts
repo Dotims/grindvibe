@@ -81,12 +81,17 @@ const routinesSlice = createSlice({
       arr.splice(Math.max(0, Math.min(action.payload.newOrder-1, arr.length)), 0, moved);
       d.exercises = arr.map((e, i) => ({ ...e, order: i+1 }));
     },
+    setDraft(state, action: PayloadAction<typeof initialState>) {
+      state.name = action.payload.name;
+      state.description = action.payload.description;
+      state.days = action.payload.days;
+    },
   }
 });
 
 export const {
   resetDraft, setName, setDescription,
-  addDay, removeDay, renameDay,
+  addDay, removeDay, renameDay, setDraft,
   addExerciseToDay, updateExercise, removeExercise, reorderExercise
 } = routinesSlice.actions;
 
