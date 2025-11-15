@@ -16,7 +16,7 @@ import { useAuth } from "../../auth/useAuth";
 const NAV = [
   { to: "/", label: "Strona główna" },
   { to: "/exercises", label: "Ćwiczenia" },
-  { to: "/training-plan", label: "Plany treningowe" },
+  { to: "/routines", label: "Plan treningowy" },
 ];
 
 function initialsFrom(
