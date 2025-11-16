@@ -3,6 +3,7 @@ using grindvibe_backend.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 
 namespace grindvibe_backend.Controllers;
@@ -18,12 +19,14 @@ public class RoutinesController : ControllerBase
         _db = db;
     }
 
-    private int? GetUserId()
+    // UJEDNOLICONA funkcja – jak w UsersController
+    private static int? GetUserIdFromClaims(ClaimsPrincipal principal)
     {
         var raw =
-            User.FindFirst(ClaimTypes.NameIdentifier)?.Value ??
-            User.FindFirst("sub")?.Value ??
-            User.FindFirst("id")?.Value;
+            principal.FindFirst("id")?.Value ??
+            principal.FindFirst(ClaimTypes.NameIdentifier)?.Value ??
+            principal.FindFirst(JwtRegisteredClaimNames.Sub)?.Value ??
+            principal.FindFirst("sub")?.Value;
 
         return int.TryParse(raw, out var id) ? id : null;
     }
@@ -66,8 +69,8 @@ public class RoutinesController : ControllerBase
     [Authorize]
     public async Task<IActionResult> Create([FromBody] CreateRoutineDto dto)
     {
-        var userId = GetUserId();
-        if (userId is null) return Unauthorized();
+        var userId = GetUserIdFromClaims(User);
+        if (userId is null) return Unauthorized("Nieprawidłowy token.");
 
         if (string.IsNullOrWhiteSpace(dto.Name))
             return BadRequest(new { message = "Name is required" });
@@ -87,7 +90,7 @@ public class RoutinesController : ControllerBase
                 Exercises = d.Exercises.Select(e => new RoutineExercise
                 {
                     ExerciseId = e.ExerciseId,
-                    Name = e.ExerciseId, 
+                    Name = e.ExerciseId,
                     Order = e.Order,
                     TargetSets = e.TargetSets,
                     TargetRepsMin = e.TargetRepsMin,
@@ -118,11 +121,11 @@ public class RoutinesController : ControllerBase
     [Authorize]
     public async Task<ActionResult<List<RoutineDto>>> ListMine()
     {
-        var userId = GetUserId();
+        var userId = GetUserIdFromClaims(User);
         if (userId is null) return Unauthorized();
 
         var routines = await _db.Routines
-            .Where(r => r.UserId == userId)
+            .Where(r => r.UserId == userId.Value)
             .OrderByDescending(r => r.CreatedAt)
             .Select(r => new RoutineDto(r.Id, r.Name, r.Description, r.CreatedAt, r.UpdatedAt))
             .ToListAsync();
@@ -135,13 +138,13 @@ public class RoutinesController : ControllerBase
     [Authorize]
     public async Task<IActionResult> GetById(int id)
     {
-        var userId = GetUserId();
+        var userId = GetUserIdFromClaims(User);
         if (userId is null) return Unauthorized();
 
         var r = await _db.Routines
             .Include(x => x.Days)
             .ThenInclude(d => d.Exercises)
-            .FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId);
+            .FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId.Value);
 
         if (r is null) return NotFound();
 

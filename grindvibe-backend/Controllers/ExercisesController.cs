@@ -95,7 +95,7 @@ public class ExercisesController : ControllerBase
             }
         }
 
-        // pobieranie i filtrowanie lokalne
+        // local filtering path and aggregation
         var need = Math.Max(page, 1) * Math.Max(pageSize, 1);
         var agg = new List<ExerciseDto>(need);
 
