@@ -42,10 +42,12 @@ export default async function api<T>(
     extra.forEach((v, k) => headers.set(k, v)); 
   }
 
-  const url = `${API_URL}${path}`;
+  const base = (API_URL || "").replace(/\/+$/, "");
+  const pathWithSlash = path.startsWith("/") ? path : `/${path}`;
+  const url = `${base}${pathWithSlash}`;
   console.info("[API] =>", url);
 
-  const res = await fetch(`${API_URL}${path}`, { ...options, headers });
+  const res = await fetch(url, { ...options, headers });
 
   if (!res.ok) {
     let data: Record<string, unknown> | null = null;
