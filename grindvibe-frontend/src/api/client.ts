@@ -30,7 +30,7 @@ export default async function api<T>(
   path: string,
   options: RequestInit = {}
 ): Promise<T | void> {
-  const token = localStorage.getItem("token");
+  const token = localStorage.getItem("token"); 
 
   const baseHeaders: Record<string, string> = {
     "Content-Type": "application/json",
@@ -39,7 +39,7 @@ export default async function api<T>(
   const headers = new Headers(baseHeaders);
   if (options.headers) {
     const extra = new Headers(options.headers as HeadersInit);
-    extra.forEach((v, k) => headers.set(k, v)); 
+    extra.forEach((v, k) => headers.set(k, v));
   }
 
   const base = (API_URL || "").replace(/\/+$/, "");
