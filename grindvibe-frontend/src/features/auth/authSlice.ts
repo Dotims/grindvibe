@@ -4,7 +4,7 @@ import api from "../../api/client";
 import type { RootState } from "../../store/store";
 
 export type AuthUser = {
-  id: string;
+  id: number;
   email: string;
   nickname?: string | null;
   avatarUrl?: string | null;
@@ -90,13 +90,19 @@ const authSlice = createSlice({
   reducers: {
     setUser(state, action: PayloadAction<AuthUser | null>) {
       state.user = action.payload;
-      if (action.payload) localStorage.setItem(USER_KEY, JSON.stringify(action.payload));
-      else localStorage.removeItem(USER_KEY);
+      if (action.payload) {
+        localStorage.setItem("auth_user", JSON.stringify(action.payload));
+      } else {
+        localStorage.removeItem("auth_user");
+      }
     },
     setToken(state, action: PayloadAction<string | null>) {
       state.token = action.payload;
-      if (action.payload) localStorage.setItem(TOKEN_KEY, action.payload);
-      else localStorage.removeItem(TOKEN_KEY);
+      if (action.payload) {
+        localStorage.setItem("token", action.payload);
+      } else {
+        localStorage.removeItem("token");
+      }
     },
     logout(state) {
       state.token = null;
@@ -104,8 +110,8 @@ const authSlice = createSlice({
       state.status = "idle";
       state.error = null;
       state.bootstrapped = true;
-      localStorage.removeItem(TOKEN_KEY);
-      localStorage.removeItem(USER_KEY);
+      localStorage.removeItem("token");
+      localStorage.removeItem("auth_user");
     },
   },
   extraReducers: (b) => {

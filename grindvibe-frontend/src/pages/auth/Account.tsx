@@ -5,6 +5,8 @@ import { Button } from "../../components/ui/button";
 import { useAuth } from "../../auth/useAuth";
 import { LogOut, Mail, User as UserIcon, Image as ImageIcon } from "lucide-react";
 import type { AuthUser } from "../../auth/types";
+import { useAppDispatch } from "../../store/hooks";
+import { setUser as setAuthUser } from "../../features/auth/authSlice";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "";
 
@@ -52,6 +54,7 @@ export default function Account() {
   const { user, token, setUser, logout, loading } = useAuth();
   const [isUploading, setIsUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement | null>(null);
+  const dispatch = useAppDispatch();
 
   if (loading) {
     return (
@@ -149,15 +152,14 @@ export default function Account() {
                           try {
                             setIsUploading(true);
                             const { user: updated } = await uploadAvatar(f, token);
-                            setUser(updated);
+                            setUser(updated);               
+                            dispatch(setAuthUser(updated)); 
                           } catch (err) {
                             alert((err as Error).message);
                             console.error(err);
                           } finally {
                             setIsUploading(false);
-                            if (fileRef.current) {
-                              fileRef.current.value = "";
-                            }
+                            if (fileRef.current) fileRef.current.value = "";
                           }
                         }}
                       />

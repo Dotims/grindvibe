@@ -4,6 +4,7 @@ using grindvibe_backend.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.IdentityModel.Tokens.Jwt;
 
 namespace grindvibe_backend.Controllers;
 
@@ -94,6 +95,7 @@ public class UsersController : ControllerBase
         var raw =
             principal.FindFirst("id")?.Value ??
             principal.FindFirst(ClaimTypes.NameIdentifier)?.Value ??
+            principal.FindFirst(JwtRegisteredClaimNames.Sub)?.Value ??
             principal.FindFirst("sub")?.Value;
 
         return int.TryParse(raw, out var id) ? id : null;
