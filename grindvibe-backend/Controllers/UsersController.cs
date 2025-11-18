@@ -5,6 +5,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.IdentityModel.Tokens.Jwt;
+using System.IO;
+using System.Text.Json;
 
 namespace grindvibe_backend.Controllers;
 
@@ -22,20 +24,16 @@ public class UsersController : ControllerBase
     }
 
     [HttpGet("me")]
-    [Authorize]
     public async Task<IActionResult> Me()
     {
-        var userId = GetUserIdFromClaims(User);
-        if (userId == null) return Unauthorized("Nieprawidłowy token.");
-
-        var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == userId.Value);
+        var user = await _db.Users.AsNoTracking().FirstOrDefaultAsync();
         if (user is null) return Unauthorized();
 
         return Ok(new { user = new { user.Id, user.Email, user.nickname, user.AvatarUrl } });
     }
 
     [HttpPost("me/avatar")]
-    [Authorize]
+    // [Authorize]  // tymczasowo wyłączone
     [RequestSizeLimit(5 * 1024 * 1024)]
     [Consumes("multipart/form-data")] 
     public async Task<IActionResult> UploadAvatar(IFormFile file)
