@@ -4,7 +4,7 @@ import api from "../../api/client";
 import type { RootState } from "../../store/store";
 
 export type AuthUser = {
-  id: string;
+  id: number;
   email: string;
   nickname?: string | null;
   avatarUrl?: string | null;
@@ -18,10 +18,14 @@ type AuthState = {
   bootstrapped: boolean;
 };
 
+// UŻYWAJ TYCH SAMYCH KLUCZY CO AuthContext
+const TOKEN_KEY = "token";
+const USER_KEY  = "gv_user";
+
 // localStorage hydration
-const tokenFromLS = localStorage.getItem("token");
+const tokenFromLS = localStorage.getItem(TOKEN_KEY);
 const userFromLS: AuthUser | null = (() => {
-  try { return JSON.parse(localStorage.getItem("auth_user") || "null"); } catch { return null; }
+  try { return JSON.parse(localStorage.getItem(USER_KEY) || "null"); } catch { return null; }
 })();
 
 const initialState: AuthState = {
@@ -74,10 +78,10 @@ export const googleLoginWithCode = createAsyncThunk(
 
 // bootstrap current session (optional /users/me)
 export const bootstrapAuth = createAsyncThunk("auth/bootstrap", async () => {
-  const token = localStorage.getItem("token");
+  const token = localStorage.getItem(TOKEN_KEY);
   if (!token) return { user: null as AuthUser | null };
-  const me = await api<AuthUser>("/users/me");
-  return { user: me };
+  const me = await api<{ user: AuthUser }>("/users/me");
+  return { user: me.user };
 });
 
 const authSlice = createSlice({
@@ -86,13 +90,19 @@ const authSlice = createSlice({
   reducers: {
     setUser(state, action: PayloadAction<AuthUser | null>) {
       state.user = action.payload;
-      if (action.payload) localStorage.setItem("auth_user", JSON.stringify(action.payload));
-      else localStorage.removeItem("auth_user");
+      if (action.payload) {
+        localStorage.setItem("auth_user", JSON.stringify(action.payload));
+      } else {
+        localStorage.removeItem("auth_user");
+      }
     },
     setToken(state, action: PayloadAction<string | null>) {
       state.token = action.payload;
-      if (action.payload) localStorage.setItem("token", action.payload);
-      else localStorage.removeItem("token");
+      if (action.payload) {
+        localStorage.setItem("token", action.payload);
+      } else {
+        localStorage.removeItem("token");
+      }
     },
     logout(state) {
       state.token = null;
@@ -116,8 +126,8 @@ const authSlice = createSlice({
         s.user = a.payload.user;
         s.error = null;
         s.bootstrapped = true;
-        localStorage.setItem("token", a.payload.token);
-        localStorage.setItem("auth_user", JSON.stringify(a.payload.user));
+        localStorage.setItem(TOKEN_KEY, a.payload.token);
+        localStorage.setItem(USER_KEY, JSON.stringify(a.payload.user));
       })
       .addCase(loginThunk.rejected, (s, a) => {
         s.status = "failed"; s.error = a.error.message || "Login failed";
@@ -132,8 +142,8 @@ const authSlice = createSlice({
         s.token = a.payload.token;
         s.user = a.payload.user;
         s.bootstrapped = true;
-        localStorage.setItem("token", a.payload.token);
-        localStorage.setItem("auth_user", JSON.stringify(a.payload.user));
+        localStorage.setItem(TOKEN_KEY, a.payload.token);
+        localStorage.setItem(USER_KEY, JSON.stringify(a.payload.user));
       })
       .addCase(registerThunk.rejected, (s, a) => {
         s.status = "failed"; s.error = (a.error?.message as string) || "Register failed";
@@ -148,8 +158,8 @@ const authSlice = createSlice({
         s.token = a.payload.token;
         s.user = a.payload.user;
         s.bootstrapped = true;
-        localStorage.setItem("token", a.payload.token);
-        localStorage.setItem("auth_user", JSON.stringify(a.payload.user));
+        localStorage.setItem(TOKEN_KEY, a.payload.token);
+        localStorage.setItem(USER_KEY, JSON.stringify(a.payload.user));
       })
       .addCase(googleLoginWithCode.rejected, (s, a) => {
         s.status = "failed"; s.error = a.error.message || "Google login failed";

@@ -30,7 +30,7 @@ export default async function api<T>(
   path: string,
   options: RequestInit = {}
 ): Promise<T | void> {
-  const token = localStorage.getItem("token");
+  const token = localStorage.getItem("token"); 
 
   const baseHeaders: Record<string, string> = {
     "Content-Type": "application/json",
@@ -39,13 +39,15 @@ export default async function api<T>(
   const headers = new Headers(baseHeaders);
   if (options.headers) {
     const extra = new Headers(options.headers as HeadersInit);
-    extra.forEach((v, k) => headers.set(k, v)); 
+    extra.forEach((v, k) => headers.set(k, v));
   }
 
-  const url = `${API_URL}${path}`;
+  const base = (API_URL || "").replace(/\/+$/, "");
+  const pathWithSlash = path.startsWith("/") ? path : `/${path}`;
+  const url = `${base}${pathWithSlash}`;
   console.info("[API] =>", url);
 
-  const res = await fetch(`${API_URL}${path}`, { ...options, headers });
+  const res = await fetch(url, { ...options, headers });
 
   if (!res.ok) {
     let data: Record<string, unknown> | null = null;

@@ -13,16 +13,24 @@ export function useExerciseSearch(q: string, page: number, pageSize: number) {
       setResult(cached);
       return;
     }
+
     const ctl = new AbortController();
     setLoading(true);
+
     (async () => {
       try {
         const res = await fetchAndCacheSearch(params, ctl.signal);
         setResult(res);
+      } catch (err) {
+        if (err instanceof DOMException && err.name === "AbortError") {
+          return;
+        }
+        console.error("useExerciseSearch failed:", err);
       } finally {
         setLoading(false);
       }
     })();
+
     return () => ctl.abort();
   }, [q, page, pageSize]);
 

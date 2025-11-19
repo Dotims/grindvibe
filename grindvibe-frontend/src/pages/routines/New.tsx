@@ -23,6 +23,7 @@ import {
   removeExercise,
   type DraftDay,
   type DraftExercise,
+  setDraft,
 } from "../../features/routines/routinesSlice";
 
 import { useExerciseSearch } from "../../hooks/useExerciseSearch";
@@ -84,12 +85,22 @@ export default function NewRoutinePage() {
           },
         ],
       };
+
       const saved = await createRoutine(payload);
       dispatch(resetDraft());
+      localStorage.removeItem('routineDraft'); // after save clear local storage
       navigate(`/routines/${saved.id}`);
     } catch (e: unknown) {
-      if (isApiError(e)) setError(e);
-      else setError({ status: 0, message: "Failed to save routine." });
+      console.error("Routine save failed:", e);
+      if (isApiError(e)) {
+        // fallback jeśli backend nie zwróci 'message'
+        setError({
+          ...e,
+          message: e.message || "Nie udało się zapisać rutyny.",
+        });
+      } else {
+        setError({ status: 0, message: "Failed to save routine." });
+      }
     } finally {
       setSaveLoading(false);
     }
@@ -153,6 +164,30 @@ export default function NewRoutinePage() {
     dispatch(updateExercise({ dayId: day.id, exId: ex.id, patch: { notes: writeMeta(meta) } }));
   };
 
+  useEffect(() => {
+    const savedRoutine = localStorage.getItem('routineDraft');
+    if (savedRoutine) {
+      dispatch(setDraft(JSON.parse(savedRoutine)));
+    }
+  }, [dispatch]);
+
+  // Persist draft to localStorage so it survives page refresh
+  useEffect(() => {
+    try {
+      const hasData =
+        draft.name.trim().length > 0 ||
+        (draft.days && draft.days.some((d) => d.exercises.length > 0));
+
+      if (hasData) {
+        localStorage.setItem('routineDraft', JSON.stringify(draft));
+      } else {
+        localStorage.removeItem('routineDraft');
+      }
+    } catch (err) {
+      console.warn('Failed to persist routine draft', err);
+    }
+  }, [draft]);
+
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-10 bg-[var(--gv-bg)] text-[var(--gv-text)]">
       {/* Header */}
@@ -167,7 +202,12 @@ export default function NewRoutinePage() {
         </Button>
       </div>
 
-      {error && <Notice kind="error">{error.message}{error.detail ? ` (${error.detail})` : null}</Notice>}
+      {error && (
+        <Notice kind="error">
+          {error.message || "Nie udało się zapisać rutyny."}
+          {error.detail ? ` (${error.detail})` : null}
+        </Notice>
+      )}
 
       {/* Meta */}
       <Card className="mb-6 rounded-2xl border border-border/40 bg-background/60 shadow-[0_6px_24px_-10px_rgba(0,0,0,0.35)]">
