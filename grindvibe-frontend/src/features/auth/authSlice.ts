@@ -18,7 +18,7 @@ type AuthState = {
   bootstrapped: boolean;
 };
 
-// UŻYWAJ TYCH SAMYCH KLUCZY CO AuthContext
+// same keys a AuthContext
 const TOKEN_KEY = "token";
 const USER_KEY  = "gv_user";
 
@@ -124,10 +124,9 @@ const authSlice = createSlice({
         s.status = "succeeded";
         s.token = a.payload.token;
         s.user = a.payload.user;
-        s.error = null;
         s.bootstrapped = true;
-        localStorage.setItem(TOKEN_KEY, a.payload.token);
-        localStorage.setItem(USER_KEY, JSON.stringify(a.payload.user));
+        localStorage.setItem("token", a.payload.token);
+        localStorage.setItem("gv_user", JSON.stringify(a.payload.user));
       })
       .addCase(loginThunk.rejected, (s, a) => {
         s.status = "failed"; s.error = a.error.message || "Login failed";

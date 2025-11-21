@@ -45,7 +45,7 @@ export default async function api<T>(
   const base = (API_URL || "").replace(/\/+$/, "");
   const pathWithSlash = path.startsWith("/") ? path : `/${path}`;
   const url = `${base}${pathWithSlash}`;
-  console.info("[API] =>", url);
+  // console.info("[API] =>", url);
 
   const res = await fetch(url, { ...options, headers });
 
