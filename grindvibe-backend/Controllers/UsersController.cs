@@ -24,21 +24,33 @@ public class UsersController : ControllerBase
     }
 
     [HttpGet("me")]
+    [Authorize]
     public async Task<IActionResult> Me()
     {
-        var user = await _db.Users.AsNoTracking().FirstOrDefaultAsync();
+        var userId = GetUserIdFromClaims(User);
+        if (userId is null) return Unauthorized();
+
+        var user = await _db.Users
+            .AsNoTracking()
+            .SingleOrDefaultAsync(u => u.Id == userId.Value);
+
         if (user is null) return Unauthorized();
 
         return Ok(new { user = new { user.Id, user.Email, user.nickname, user.AvatarUrl } });
     }
 
     [HttpPost("me/avatar")]
-    // [Authorize]  // tymczasowo wyłączone
+    [Authorize] 
     [RequestSizeLimit(5 * 1024 * 1024)]
     [Consumes("multipart/form-data")] 
     public async Task<IActionResult> UploadAvatar(IFormFile file)
     {
         if (file is null || file.Length == 0) return BadRequest("Brak pliku.");
+
+        var userId = GetUserIdFromClaims(User);
+        if (userId is null) return Unauthorized();
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == userId.Value);
+        if (user is null) return Unauthorized();
 
         var allowedMime = new[] { "image/jpeg", "image/png", "image/webp" };
         var allowedExt = new[] { ".jpg", ".jpeg", ".png", ".webp" };
@@ -46,11 +58,6 @@ public class UsersController : ControllerBase
 
         var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
         if (!allowedExt.Contains(ext)) return BadRequest("Nieprawidłowe rozszerzenie pliku.");
-
-        var userId = GetUserIdFromClaims(User);
-        if (userId is null) return Unauthorized();
-        var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == userId.Value);
-        if (user is null) return Unauthorized();
 
         var webRoot = _env.WebRootPath;
         if (string.IsNullOrWhiteSpace(webRoot))

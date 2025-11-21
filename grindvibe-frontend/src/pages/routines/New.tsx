@@ -88,8 +88,9 @@ export default function NewRoutinePage() {
 
       const saved = await createRoutine(payload);
       dispatch(resetDraft());
-      localStorage.removeItem('routineDraft'); // after save clear local storage
-      navigate(`/routines/${saved.id}`);
+      localStorage.removeItem('routineDraft'); 
+      navigate('/routines'); 
+
     } catch (e: unknown) {
       console.error("Routine save failed:", e);
       if (isApiError(e)) {

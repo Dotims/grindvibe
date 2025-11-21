@@ -98,7 +98,7 @@ export function searchExercises(
   for (const m of params?.muscle ?? []) if (m && m.trim()) qs.append("muscles", m.trim());
   for (const e of params?.equipment ?? []) if (e && e.trim()) qs.append("equipment", e.trim());
 
-  console.log("[API CALL] /exercises ->", qs.toString()); 
+  // console.log("[API CALL] /exercises ->", qs.toString()); 
   return api<PagedResult<ExerciseDto>>(`/exercises?${qs.toString()}`, { signal });
 }
 
@@ -127,10 +127,10 @@ export function getCachedSearch(params?: SearchExercisesParams): PagedResult<Exe
   const key = makeSearchKey(params);
   const hit = searchCache.get(key)
   if (hit && Date.now() - hit.ts < SEARCH_TTL_MS) {
-    console.log("[CACHE HIT]", key); 
+    // console.log("[CACHE HIT]", key); 
     return hit.data;
   }
-  console.log("[CACHE MISS]", key);   
+  // console.log("[CACHE MISS]", key);   
   return undefined;
 }
 

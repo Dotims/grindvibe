@@ -1,31 +1,39 @@
-import { useState } from "react";
+import { useEffect, useState } from "react"; // Dodaj useEffect
 import { PlusCircle, Search, Dumbbell, ClipboardList } from "lucide-react";
 import { Card, CardContent } from "../../components/ui/card";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-
-type Routine = {
-  id: number;
-  name: string;
-  description?: string;
-  totalExercises: number;
-};
+// Importuj funkcję z API
+import { listMyRoutines, type RoutineDto } from "../../api/routines"; 
+import { Notice } from "../../components/ui/Notice"; // Opcjonalnie do błędów
 
 export default function RoutinesPage() {
-  const [routines] = useState<Routine[]>([
-    {
-      id: 1,
-      name: "Push–Pull–Legs",
-      description: "Klasyczny podział na partie mięśniowe, idealny do budowania siły.",
-      totalExercises: 15,
-    },
-    {
-      id: 2,
-      name: "Full Body 3x w tygodniu",
-      description: "Trening całego ciała dla początkujących z równym obciążeniem.",
-      totalExercises: 9,
-    },
-  ]);
+  // Zmień stan na pustą tablicę na start
+  const [routines, setRoutines] = useState<RoutineDto[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // POBIERANIE DANYCH Z BACKENDU
+  useEffect(() => {
+    let mounted = true;
+    
+    async function load() {
+      try {
+        setLoading(true);
+        const data = await listMyRoutines(); // To strzela do GET /routines
+        if (mounted) setRoutines(data);
+      } catch (err) {
+        console.error(err);
+        if (mounted) setError("Nie udało się pobrać planów.");
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    }
+
+    load();
+
+    return () => { mounted = false; };
+  }, []);
 
   const actionCards = [
     {
@@ -88,7 +96,10 @@ export default function RoutinesPage() {
         <h2 className="text-lg font-semibold mb-3">Twoje rutyny</h2>
       </div>
 
-      {routines.length === 0 ? (
+      {loading && <div className="text-sm text-muted-foreground">Ładowanie planów...</div>}
+      {error && <Notice kind="error">{error}</Notice>}
+
+      {!loading && !error && routines.length === 0 ? (
         <div className="grid place-items-center rounded-xl border border-dashed p-10 text-center text-sm text-muted-foreground">
           Nie masz jeszcze żadnych rutyn.<br />
           <span className="text-[color(display-p3_0.35_0.60_1)]">Utwórz pierwszą powyżej!</span>
@@ -97,7 +108,7 @@ export default function RoutinesPage() {
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {routines.map((r) => (
             <motion.div
-              key={r.id}
+              key={r.id} // r.id = int fromd DTO
               initial={{ opacity: 0.95, y: 0 }}
               whileHover={{ y: -3, scale: 1.01 }}
               transition={{ type: "spring", stiffness: 350, damping: 24, mass: 0.6 }}
@@ -124,7 +135,7 @@ export default function RoutinesPage() {
                     )}
 
                     <div className="mt-auto flex items-center justify-between text-xs text-muted-foreground/70">
-                      <span>{r.totalExercises} ćwiczeń</span>
+                      <span>Plan treningowy</span> 
                       <span className="text-[color(display-p3_0.35_0.60_1)] font-medium">Zobacz</span>
                     </div>
                   </CardContent>
