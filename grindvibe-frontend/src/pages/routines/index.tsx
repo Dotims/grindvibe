@@ -3,28 +3,27 @@ import { PlusCircle, Search, Dumbbell, ClipboardList } from "lucide-react";
 import { Card, CardContent } from "../../components/ui/card";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-// Importuj funkcję z API
+// functions API
 import { listMyRoutines, type RoutineDto } from "../../api/routines"; 
-import { Notice } from "../../components/ui/Notice"; // Opcjonalnie do błędów
+import { Notice } from "../../components/ui/Notice"; // for errors
 
 export default function RoutinesPage() {
-  // Zmień stan na pustą tablicę na start
   const [routines, setRoutines] = useState<RoutineDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // POBIERANIE DANYCH Z BACKENDU
+  // taking data from the backend
   useEffect(() => {
     let mounted = true;
     
     async function load() {
       try {
         setLoading(true);
-        const data = await listMyRoutines(); // To strzela do GET /routines
+        const data = await listMyRoutines(); // This hits GET /routines
         if (mounted) setRoutines(data);
       } catch (err) {
         console.error(err);
-        if (mounted) setError("Nie udało się pobrać planów.");
+        if (mounted) setError("Failed to fetch routines.");
       } finally {
         if (mounted) setLoading(false);
       }
@@ -46,13 +45,13 @@ export default function RoutinesPage() {
       icon: <Search className="h-8 w-8 text-[color(display-p3_0.35_0.60_1)] mb-1" />,
       title: "Wyszukaj rutyny",
       desc: "Przeglądaj gotowe plany i kopiuj je",
-      to: "/routines/discover", // utworzymy później
+      to: "/routines/discover", 
     },
     {
       icon: <ClipboardList className="h-8 w-8 text-[color(display-p3_0.35_0.60_1)] mb-1" />,
       title: "Szybki trening",
       desc: "Zapisz bieżący workout bez rutyny",
-      to: "/workout/quick", // utworzymy później
+      to: "/workout/quick", 
     },
   ];
 

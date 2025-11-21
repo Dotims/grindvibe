@@ -12,6 +12,7 @@ import Exercises from "../pages/exercises/index";
 import ExerciseDetail from "../pages/exercises/Details";
 import RoutinesPage from "../pages/routines";
 import NewRoutinePage from "../pages/routines/New";
+import RoutineDetails from "../pages/routines/Details"; 
 
 export default function AppRouter() {
   return (
@@ -31,6 +32,8 @@ export default function AppRouter() {
         <Route path="/exercises" element={ <Exercises />} />
 
         <Route path="/exercises/:id" element={ <ExerciseDetail />} />
+
+        <Route path="/routines/:id" element={ <RoutineDetails />} />
 
         <Route 
           path="/routines"
