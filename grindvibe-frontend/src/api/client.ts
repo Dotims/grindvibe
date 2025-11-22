@@ -30,7 +30,7 @@ export default async function api<T>(
   path: string,
   options: RequestInit = {}
 ): Promise<T | void> {
-  const token = localStorage.getItem("token"); 
+  const token = localStorage.getItem("gv_token") || localStorage.getItem("token");
 
   const baseHeaders: Record<string, string> = {
     "Content-Type": "application/json",
@@ -45,7 +45,12 @@ export default async function api<T>(
   const base = (API_URL || "").replace(/\/+$/, "");
   const pathWithSlash = path.startsWith("/") ? path : `/${path}`;
   const url = `${base}${pathWithSlash}`;
-  // console.info("[API] =>", url);
+
+  if (token) {
+      console.log(`[API] Wysyłam do ${path} z tokenem: ${token.substring(0, 10)}...`);
+  } else {
+      console.warn(`[API] Wysyłam do ${path} BEZ TOKENA!`);
+  }
 
   const res = await fetch(url, { ...options, headers });
 

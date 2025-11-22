@@ -22,10 +22,10 @@ public class RoutinesController : ControllerBase
     // Helper - must be same like in UsersController
     private static int? GetUserIdFromClaims(ClaimsPrincipal principal)
     {
-        // DEBUG: Wypisz wszystkie claimy, żebyś widział co przychodzi
-        foreach (var claim in principal.Claims)
+        Console.WriteLine("[CONTROLLER] Sprawdzam Claims:");
+        foreach (var c in principal.Claims)
         {
-            Console.WriteLine($"Claim: {claim.Type} = {claim.Value}");
+            Console.WriteLine($" - {c.Type}: {c.Value}");
         }
 
         var raw =
@@ -34,9 +34,23 @@ public class RoutinesController : ControllerBase
             principal.FindFirst(JwtRegisteredClaimNames.Sub)?.Value ??
             principal.FindFirst("sub")?.Value;
 
-        Console.WriteLine($"[DEBUG] Znalezione ID (raw): {raw}");
+        if (raw == null)
+        {
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine("[CONTROLLER] BŁĄD: Nie znaleziono claima z ID użytkownika!");
+            Console.ResetColor();
+            return null;
+        }
 
-        return int.TryParse(raw, out var id) ? id : null;
+        if (int.TryParse(raw, out var id))
+        {
+            return id;
+        }
+
+        Console.ForegroundColor = ConsoleColor.Red;
+        Console.WriteLine($"[CONTROLLER] BŁĄD: Znaleziono ID '{raw}', ale to nie jest liczba!");
+        Console.ResetColor();
+        return null;
     }
 
     // DTO zgodne z frontem: RoutineCreateDto w
@@ -150,12 +164,18 @@ public class RoutinesController : ControllerBase
     public async Task<ActionResult<List<RoutineDto>>> ListMine()
     {
         var userId = GetUserIdFromClaims(User);
-        if (userId is null) return Unauthorized();
+        if (userId == null) return Unauthorized();
 
         var routines = await _db.Routines
             .Where(r => r.UserId == userId.Value)
             .OrderByDescending(r => r.CreatedAt)
-            .Select(r => new RoutineDto(r.Id, r.Name, r.Description, r.CreatedAt, r.UpdatedAt))
+            .Select(r => new RoutineDto(
+                r.Id,
+                r.Name,
+                r.Description,
+                r.CreatedAt,
+                r.UpdatedAt
+            ))
             .ToListAsync();
 
         return Ok(routines);
