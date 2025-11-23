@@ -1,14 +1,14 @@
 using System.Text;
 using grindvibe_backend.Data;
-using grindvibe_backend.Models;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
-using grindvibe_backend.Config;
 using grindvibe_backend.Helpers;
 using grindvibe_backend.Services;
+using grindvibe_backend.Config;
+using grindvibe_backend.Models;
+using Microsoft.AspNetCore.Identity;
 using DotNetEnv;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -27,31 +27,84 @@ builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 builder.Configuration.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection("Jwt"));
 
-var jwtSection = builder.Configuration.GetSection("Jwt");
-var jwtKey = jwtSection["Key"] ?? throw new InvalidOperationException("Jwt:Key is missing.");
-var jwtIssuer = jwtSection["Issuer"];
-var jwtAudience = jwtSection["Audience"];
-var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
+// 1. Get key "hardcoded" from configuration
+var jwtKey = builder.Configuration["Jwt:Key"];
+
+// DEBUG: Verify key is loaded
+if (string.IsNullOrEmpty(jwtKey))
+{
+    Console.ForegroundColor = ConsoleColor.Red;
+    Console.WriteLine("CRITICAL: 'Jwt:Key' is missing in configuration!");
+    Console.ResetColor();
+}
+else
+{
+    Console.WriteLine($"[CONFIG] Loaded JWT Key (first 5 chars): {jwtKey.Substring(0, 5)}...");
+}
+
+var jwtIssuer = builder.Configuration["Jwt:Issuer"];
+var jwtAudience = builder.Configuration["Jwt:Audience"];
+
+if (string.IsNullOrWhiteSpace(jwtKey))
+{
+    throw new Exception("CRITICAL: 'Jwt:Key' not found in appsettings.json! Server cannot start.");
+}
+
+// 2. Configure Auth with this specific key
+builder.Services.AddAuthentication(x =>
+{
+    x.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    x.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(x =>
+{
+    x.RequireHttpsMetadata = false;
+    x.SaveToken = true;
+    x.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuerSigningKey = true,
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
+        ValidateIssuer = true,
+        ValidIssuer = jwtIssuer,
+        ValidateAudience = true,
+        ValidAudience = jwtAudience,
+        ValidateLifetime = true,
+        ClockSkew = TimeSpan.Zero
+    };
+
+    x.Events = new JwtBearerEvents
+    {
+        OnAuthenticationFailed = context =>
+        {
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine($"[AUTH-FAIL] Powód: {context.Exception.GetType().Name}");
+            Console.WriteLine($"[AUTH-FAIL] Wiadomość: {context.Exception.Message}");
+            Console.ResetColor();
+            return Task.CompletedTask;
+        },
+        OnTokenValidated = context =>
+        {
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.WriteLine($"[AUTH-OK] Token ważny. User: {context.Principal?.Identity?.Name}");
+            Console.ResetColor();
+            return Task.CompletedTask;
+        },
+        OnMessageReceived = context =>
+        {
+            var token = context.Request.Headers["Authorization"].FirstOrDefault()?.Replace("Bearer ", "");
+            if (string.IsNullOrEmpty(token))
+            {
+                Console.ForegroundColor = ConsoleColor.Yellow;
+                Console.WriteLine($"[AUTH-WARN] Żądanie do {context.Request.Path} bez tokena!");
+                Console.ResetColor();
+            }
+            return Task.CompletedTask;
+        }
+    };
+});
 
 // JWT generator DI (fix)
 builder.Services.AddSingleton<IJwtTokenGenerator, JwtTokenGenerator>();
-
-builder.Services
-    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
-    {
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuer = !string.IsNullOrEmpty(jwtIssuer),
-            ValidIssuer = jwtIssuer,
-            ValidateAudience = !string.IsNullOrEmpty(jwtAudience),
-            ValidAudience = jwtAudience,
-            ValidateIssuerSigningKey = true,
-            IssuerSigningKey = signingKey,
-            ValidateLifetime = true,
-            ClockSkew = TimeSpan.Zero
-        };
-    });
 
 // controllers
 builder.Services.AddControllers();
