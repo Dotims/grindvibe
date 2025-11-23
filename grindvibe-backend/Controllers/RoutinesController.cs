@@ -189,14 +189,39 @@ public class RoutinesController : ControllerBase
         var userId = GetUserIdFromClaims(User);
         if (userId is null) return Unauthorized();
 
+        // 1. Pobierz dane z bazy z INCLUDE (ważne!)
         var r = await _db.Routines
             .Include(x => x.Days)
             .ThenInclude(d => d.Exercises)
             .FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId.Value);
 
         if (r is null) return NotFound();
-        
-        // ... mapowanie payload ...
-        return Ok(new { r.Id, r.Name }); // Skrócone dla czytelności, użyj pełnego mapowania z poprzednich odpowiedzi
+
+        // 2. Zmapuj dane do DTO (To tutaj brakowało 'Days'!)
+        var dto = new
+        {
+            r.Id,
+            r.Name,
+            r.Description,
+            r.CreatedAt,
+            // WAŻNE: Musisz przepisać strukturę Days i Exercises
+            Days = r.Days.Select(d => new
+            {
+                d.Id,
+                d.Name,
+                d.Notes,
+                Exercises = d.Exercises.OrderBy(e => e.Order).Select(e => new
+                {
+                    e.Id,
+                    e.ExerciseId,
+                    e.Name,
+                    e.Order,
+                    e.Notes,       // Tu są zapisane serie/powtórzenia
+                    e.RestSeconds
+                }).ToList()
+            }).ToList()
+        };
+
+        return Ok(dto);
     }
 }

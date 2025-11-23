@@ -19,7 +19,11 @@ export default function RoutinesPage() {
     async function load() {
       try {
         setLoading(true);
-        const data = await listMyRoutines(); // This hits GET /routines
+        const data = await listMyRoutines();
+        
+        // DEBUG: Check what data we received
+        console.log("Routines loaded from API:", data);
+
         if (mounted) setRoutines(data);
       } catch (err) {
         console.error(err);

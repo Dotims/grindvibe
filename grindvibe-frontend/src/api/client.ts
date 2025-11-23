@@ -30,21 +30,28 @@ export default async function api<T>(
   path: string,
   options: RequestInit = {}
 ): Promise<T | void> {
+  const base = (API_URL || "").replace(/\/+$/, "");
+  const pathWithSlash = path.startsWith("/") ? path : `/${path}`;
+  const url = `${base}${pathWithSlash}`;
+
+  // FIX: Check 'gv_token' first, then fallback to 'token'
   const token = localStorage.getItem("gv_token") || localStorage.getItem("token");
+
+  // DEBUG: Log token status to console
+  if (!token) {
+    console.warn(`[API] Sending request to ${path} WITHOUT TOKEN. LocalStorage keys:`, Object.keys(localStorage));
+  }
 
   const baseHeaders: Record<string, string> = {
     "Content-Type": "application/json",
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
   };
+
   const headers = new Headers(baseHeaders);
   if (options.headers) {
     const extra = new Headers(options.headers as HeadersInit);
     extra.forEach((v, k) => headers.set(k, v));
   }
-
-  const base = (API_URL || "").replace(/\/+$/, "");
-  const pathWithSlash = path.startsWith("/") ? path : `/${path}`;
-  const url = `${base}${pathWithSlash}`;
 
   if (token) {
       console.log(`[API] Wysyłam do ${path} z tokenem: ${token.substring(0, 10)}...`);

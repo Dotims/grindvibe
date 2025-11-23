@@ -29,6 +29,19 @@ builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection("Jwt"));
 
 // 1. Get key "hardcoded" from configuration
 var jwtKey = builder.Configuration["Jwt:Key"];
+
+// DEBUG: Verify key is loaded
+if (string.IsNullOrEmpty(jwtKey))
+{
+    Console.ForegroundColor = ConsoleColor.Red;
+    Console.WriteLine("CRITICAL: 'Jwt:Key' is missing in configuration!");
+    Console.ResetColor();
+}
+else
+{
+    Console.WriteLine($"[CONFIG] Loaded JWT Key (first 5 chars): {jwtKey.Substring(0, 5)}...");
+}
+
 var jwtIssuer = builder.Configuration["Jwt:Issuer"];
 var jwtAudience = builder.Configuration["Jwt:Audience"];
 

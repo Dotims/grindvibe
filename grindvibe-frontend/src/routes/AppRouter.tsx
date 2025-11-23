@@ -10,7 +10,7 @@ import Exercises from "../pages/exercises/index";
 import ExerciseDetail from "../pages/exercises/Details";
 import RoutinesPage from "../pages/routines";
 import NewRoutinePage from "../pages/routines/New";
-import RoutineDetails from "../pages/routines/Details"; 
+import RoutineDetails from "../pages/routines/Details"; // Ensure this is imported
 
 export default function AppRouter() {
   return (
@@ -29,13 +29,20 @@ export default function AppRouter() {
         <Route path="/exercises" element={ <Exercises />} />
         <Route path="/exercises/:id" element={ <ExerciseDetail />} />
 
+        {/* --- FIX: CLEAN ROUTING STRUCTURE --- */}
+        
+        {/* 1. List of routines */}
         <Route path="/routines" element={ <RoutinesPage />} />
         
+        {/* 2. Single routine details */}
         <Route path="/routines/:id" element={ <RoutineDetails />} />
 
+        {/* 3. Create new routine (Protected) */}
         <Route element={<RequireAuth />}>
           <Route path="/routines/new" element={<NewRoutinePage />} />
         </Route>
+
+        {/* ------------------------------------ */}
 
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>

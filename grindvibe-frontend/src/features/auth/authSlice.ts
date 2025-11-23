@@ -18,8 +18,8 @@ type AuthState = {
   bootstrapped: boolean;
 };
 
-// same keys a AuthContext
-const TOKEN_KEY = "token";
+// FIX: Change this to "gv_token" to match AuthContext and client.ts
+const TOKEN_KEY = "gv_token"; 
 const USER_KEY  = "gv_user";
 
 // localStorage hydration
