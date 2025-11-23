@@ -224,4 +224,22 @@ public class RoutinesController : ControllerBase
 
         return Ok(dto);
     }
+
+    [HttpDelete("{id:int}")]
+    [Authorize]
+    public async Task<IActionResult> Delete(int id)
+    {
+        var userId = GetUserIdFromClaims(User);
+        if (userId is null) return Unauthorized();
+
+        var routine = await _db.Routines
+            .FirstOrDefaultAsync(r => r.Id == id && r.UserId == userId.Value);
+
+        if (routine is null) return NotFound();
+
+        _db.Routines.Remove(routine);
+        await _db.SaveChangesAsync();
+
+        return NoContent();
+    }
 }

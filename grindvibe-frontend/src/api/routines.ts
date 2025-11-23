@@ -49,3 +49,10 @@ export async function listMyRoutines(signal?: AbortSignal): Promise<RoutineDto[]
 export async function getRoutine(id: string, signal?: AbortSignal) {
   return api(`/routines/${id}`, { method: "GET", signal });
 }
+
+// DELETE /routines/:id
+export async function deleteRoutine(id: string): Promise<void> {
+  return api<void>(`/routines/${id}`, {
+    method: "DELETE",
+  });
+}
