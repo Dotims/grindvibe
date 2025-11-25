@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent } from "../../components/ui/card";
 import { Notice } from "../../components/ui/Notice";
-import { getRoutine } from "../../api/routines";
+import { getRoutineBySlug, getRoutine } from "../../api/routines";
 import { parseMeta, ACCENT } from "../../lib/routinesMeta";
 
 // Type definition for the API response
@@ -31,20 +31,29 @@ type RoutineDetailsDto = {
 };
 
 export default function RoutineDetails() {
-  const { id } = useParams<{ id: string }>();
+  const { slug } = useParams<{ slug: string }>();
   const [routine, setRoutine] = useState<RoutineDetailsDto | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!id) return;
+    if (!slug) return;
     let mounted = true;
 
     async function load() {
       try {
         setLoading(true);
-        // Fetch data from backend
-        const data = await getRoutine(id!) as unknown as RoutineDetailsDto;
+        
+        let data;
+        // Check if the slug is actually a numeric ID (legacy support)
+        const isId = /^\d+$/.test(slug!);
+        
+        if (isId) {
+             data = await getRoutine(slug!) as unknown as RoutineDetailsDto;
+        } else {
+             data = await getRoutineBySlug(slug!) as unknown as RoutineDetailsDto;
+        }
+
         if (mounted) setRoutine(data);
       } catch (err) {
         console.error(err);

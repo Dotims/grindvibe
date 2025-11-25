@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.IdentityModel.Tokens.Jwt; 
 using System.Security.Claims;
+using System.Text.RegularExpressions;
 
 namespace grindvibe_backend.Controllers;
 
@@ -81,10 +82,26 @@ public class RoutinesController : ControllerBase
     public record RoutineDto(
         int Id,
         string Name,
+        string Slug, // <--- NOWE POLE
         string? Description,
         DateTime CreatedAt,
         DateTime? UpdatedAt
     );
+
+    // Helper to generate URL-friendly slugs
+    private string GenerateSlug(string name)
+    {
+        string slug = name.ToLowerInvariant();
+        // Replace specific characters if needed (e.g. accents)
+        slug = slug.Replace("ą", "a").Replace("ć", "c").Replace("ę", "e").Replace("ł", "l").Replace("ń", "n").Replace("ó", "o").Replace("ś", "s").Replace("ź", "z").Replace("ż", "z");
+        // Remove invalid characters
+        slug = Regex.Replace(slug, @"[^a-z0-9\s-]", "");
+        // Replace spaces with hyphens
+        slug = Regex.Replace(slug, @"\s+", "-").Trim('-');
+        
+        // Append random suffix to ensure uniqueness
+        return $"{slug}-{Guid.NewGuid().ToString().Substring(0, 4)}";
+    }
 
     // POST /routines
     [HttpPost]
@@ -113,6 +130,7 @@ public class RoutinesController : ControllerBase
         var routine = new Routine
         {
             Name = dto.Name.Trim(),
+            Slug = GenerateSlug(dto.Name.Trim()), // <--- GENERUJEMY SLUG
             Description = dto.Description?.Trim(),
             UserId = userId.Value,
             Days = dto.Days.Select(d => new RoutineDay
@@ -147,9 +165,11 @@ public class RoutinesController : ControllerBase
             return StatusCode(500, new { message = "Błąd zapisu do bazy", detail = ex.Message });
         }
 
+        // Zwracamy DTO z nowym slugiem
         var outDto = new RoutineDto(
             routine.Id,
             routine.Name,
+            routine.Slug, // <--- DODAJ SLUG DO DTO (zobacz krok niżej)
             routine.Description,
             routine.CreatedAt,
             routine.UpdatedAt
@@ -172,6 +192,7 @@ public class RoutinesController : ControllerBase
             .Select(r => new RoutineDto(
                 r.Id,
                 r.Name,
+                r.Slug, // Include slug in list
                 r.Description,
                 r.CreatedAt,
                 r.UpdatedAt
@@ -241,5 +262,51 @@ public class RoutinesController : ControllerBase
         await _db.SaveChangesAsync();
 
         return NoContent();
+    }
+
+    // NOWA METODA: GET BY SLUG
+    // Używamy innej trasy, żeby nie kolidowało z ID, np. routines/s/{slug}
+    // LUB po prostu sprawdzamy czy parametr to int czy string w jednej metodzie.
+    // Najczyściej dla React Routera będzie zrobić osobny endpoint, a frontend sobie wybierze.
+    
+    [HttpGet("by-slug/{slug}")]
+    [Authorize]
+    public async Task<IActionResult> GetBySlug(string slug)
+    {
+        var userId = GetUserIdFromClaims(User);
+        if (userId is null) return Unauthorized();
+
+        var r = await _db.Routines
+            .Include(x => x.Days)
+            .ThenInclude(d => d.Exercises)
+            .FirstOrDefaultAsync(x => x.Slug == slug && x.UserId == userId.Value);
+
+        if (r is null) return NotFound();
+
+        var dto = new
+        {
+            r.Id,
+            r.Name,
+            r.Slug,
+            r.Description,
+            r.CreatedAt,
+            Days = r.Days.Select(d => new
+            {
+                d.Id,
+                d.Name,
+                d.Notes,
+                Exercises = d.Exercises.OrderBy(e => e.Order).Select(e => new
+                {
+                    e.Id,
+                    e.ExerciseId,
+                    e.Name,
+                    e.Order,
+                    e.Notes,
+                    e.RestSeconds
+                }).ToList()
+            }).ToList()
+        };
+
+        return Ok(dto);
     }
 }

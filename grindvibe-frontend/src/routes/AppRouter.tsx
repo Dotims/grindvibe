@@ -34,8 +34,8 @@ export default function AppRouter() {
         {/* 1. List of routines */}
         <Route path="/routines" element={ <RoutinesPage />} />
         
-        {/* 2. Single routine details */}
-        <Route path="/routines/:id" element={ <RoutineDetails />} />
+        {/* 2. Single routine details - changed to accept slug */}
+        <Route path="/routines/:slug" element={ <RoutineDetails />} />
 
         {/* 3. Create new routine (Protected) */}
         <Route element={<RequireAuth />}>

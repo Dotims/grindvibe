@@ -185,7 +185,8 @@ export default function RoutinesPage() {
                   <RoutineCardContent r={r} isDeleteMode={true} />
                 </div>
               ) : (
-                <Link to={`/routines/${r.id}`} className="block h-full">
+                // Use slug if available, otherwise fallback to ID
+                <Link to={`/routines/${r.slug || r.id}`} className="block h-full">
                   <RoutineCardContent r={r} isDeleteMode={false} />
                 </Link>
               )}

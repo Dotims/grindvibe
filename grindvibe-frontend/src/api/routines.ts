@@ -22,6 +22,7 @@ export type RoutineCreateDto = {
 export type RoutineDto = {
   id: string;
   name: string;
+  slug?: string; // Optional for backward compatibility
   description?: string | null;
   createdAt: string;
   updatedAt: string;
@@ -48,6 +49,11 @@ export async function listMyRoutines(signal?: AbortSignal): Promise<RoutineDto[]
 // (opcjonalnie) GET /routines/:id – przyda się do edytora
 export async function getRoutine(id: string, signal?: AbortSignal) {
   return api(`/routines/${id}`, { method: "GET", signal });
+}
+
+// GET /routines/by-slug/:slug
+export async function getRoutineBySlug(slug: string, signal?: AbortSignal) {
+  return api(`/routines/by-slug/${slug}`, { method: "GET", signal });
 }
 
 // DELETE /routines/:id
