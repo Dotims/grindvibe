@@ -31,16 +31,16 @@ export default function AppRouter() {
 
         {/* --- ROUTINES --- */}
         
-        {/* 1. Lista rutyn */}
-        <Route path="/routines" element={ <RoutinesPage />} />
-        
-        {/* 2. Szczegóły rutyny - PRZYWRÓCONO :slug */}
-        <Route path="/routines/:slug" element={ <RoutineDetails />} />
-
-        {/* 3. Nowa rutyna */}
+        {/* 1. Create new routine (Specific path first!) */}
         <Route element={<RequireAuth />}>
           <Route path="/routines/new" element={<NewRoutinePage />} />
         </Route>
+
+        {/* 2. List of routines */}
+        <Route path="/routines" element={ <RoutinesPage />} />
+        
+        {/* 3. Single routine details (Dynamic parameter last) */}
+        <Route path="/routines/:slug" element={ <RoutineDetails />} />
 
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>

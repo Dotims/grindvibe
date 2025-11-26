@@ -40,13 +40,17 @@ export default function RoutineDetails() {
     if (!slug) return;
     let mounted = true;
 
+    console.log("[RoutineDetails] Mounted with slug:", slug); // DEBUG
+
     async function load() {
       try {
         setLoading(true);
         
         let data;
-        // Check if the slug is actually a numeric ID (legacy support)
+
+        // Sprawdzamy czy slug to liczba (stare ID) czy tekst (nowy slug)
         const isId = /^\d+$/.test(slug!);
+        console.log("[RoutineDetails] isId:", isId); // DEBUG
         
         if (isId) {
              data = await getRoutine(slug!) as unknown as RoutineDetailsDto;
@@ -54,17 +58,19 @@ export default function RoutineDetails() {
              data = await getRoutineBySlug(slug!) as unknown as RoutineDetailsDto;
         }
 
+        console.log("[RoutineDetails] Loaded data:", data); // DEBUG
+
         if (mounted) setRoutine(data);
       } catch (err) {
-        console.error(err);
-        if (mounted) setError("Failed to load routine details.");
+        console.error("[RoutineDetails] Error loading routine:", err); // DEBUG
+        if (mounted) setError("Nie udało się załadować rutyny.");
       } finally {
         if (mounted) setLoading(false);
       }
     }
     load();
     return () => { mounted = false; };
-  }, [id]);
+  }, [slug]);
 
   if (loading) return <div className="p-10 text-center text-muted-foreground">Loading...</div>;
 
