@@ -10,7 +10,7 @@ import Exercises from "../pages/exercises/index";
 import ExerciseDetail from "../pages/exercises/Details";
 import RoutinesPage from "../pages/routines";
 import NewRoutinePage from "../pages/routines/New";
-import RoutineDetails from "../pages/routines/Details"; // Ensure this is imported
+import RoutineDetails from "../pages/routines/Details";
 
 export default function AppRouter() {
   return (
@@ -29,20 +29,18 @@ export default function AppRouter() {
         <Route path="/exercises" element={ <Exercises />} />
         <Route path="/exercises/:id" element={ <ExerciseDetail />} />
 
-        {/* --- FIX: CLEAN ROUTING STRUCTURE --- */}
+        {/* --- ROUTINES --- */}
         
-        {/* 1. List of routines */}
+        {/* 1. Lista rutyn */}
         <Route path="/routines" element={ <RoutinesPage />} />
         
-        {/* 2. Single routine details - changed to accept slug */}
+        {/* 2. Szczegóły rutyny - PRZYWRÓCONO :slug */}
         <Route path="/routines/:slug" element={ <RoutineDetails />} />
 
-        {/* 3. Create new routine (Protected) */}
+        {/* 3. Nowa rutyna */}
         <Route element={<RequireAuth />}>
           <Route path="/routines/new" element={<NewRoutinePage />} />
         </Route>
-
-        {/* ------------------------------------ */}
 
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>

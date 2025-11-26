@@ -23,6 +23,10 @@ export default function RoutinesPage() {
       try {
         setLoading(true);
         const data = await listMyRoutines();
+        
+        // DEBUG: Check what data we received
+        console.log("Routines loaded from API:", data);
+
         if (mounted) setRoutines(data);
       } catch (err) {
         console.error(err);
