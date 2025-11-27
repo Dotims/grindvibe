@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { ChevronLeft, Calendar, Dumbbell, Clock, X } from "lucide-react"; // Added X icon
+import { ChevronLeft, Calendar, Dumbbell, Clock, X, Edit } from "lucide-react"; // Added X and Edit icons
 import { motion, AnimatePresence } from "framer-motion"; // Added AnimatePresence
 
 import { Button } from "../../components/ui/button";
@@ -104,9 +104,18 @@ export default function RoutineDetails() {
               <p className="mt-2 text-lg text-muted-foreground">{routine.description}</p>
             )}
           </div>
-          <Button className="rounded-full" style={{ backgroundColor: ACCENT }}>
-            Start Workout
-          </Button>
+
+          <div className="flex gap-2">
+            <Button variant="outline" className="rounded-full gap-2" asChild>
+              <Link to={`/routines/${slug}/edit`}>
+                <Edit className="h-4 w-4" /> Edit
+              </Link>
+            </Button>
+
+            <Button className="rounded-full" style={{ backgroundColor: ACCENT }}>
+              Start Workout
+            </Button>
+          </div>
         </div>
       </div>
 

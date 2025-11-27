@@ -11,6 +11,7 @@ import ExerciseDetail from "../pages/exercises/Details";
 import RoutinesPage from "../pages/routines";
 import NewRoutinePage from "../pages/routines/New";
 import RoutineDetails from "../pages/routines/Details";
+import EditRoutinePage from "../pages/routines/Edit";
 
 export default function AppRouter() {
   return (
@@ -31,9 +32,11 @@ export default function AppRouter() {
 
         {/* --- ROUTINES --- */}
         
-        {/* 1. Create new routine (Specific path first!) */}
+        {/* 1. Create new routine (Protected) */}
         <Route element={<RequireAuth />}>
           <Route path="/routines/new" element={<NewRoutinePage />} />
+          {/* Edit Route */}
+          <Route path="/routines/:slug/edit" element={<EditRoutinePage />} />
         </Route>
 
         {/* 2. List of routines */}

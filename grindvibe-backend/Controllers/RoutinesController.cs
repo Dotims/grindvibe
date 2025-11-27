@@ -169,7 +169,7 @@ public class RoutinesController : ControllerBase
         var outDto = new RoutineDto(
             routine.Id,
             routine.Name,
-            routine.Slug, // <--- DODAJ SLUG DO DTO (zobacz krok niżej)
+            routine.Slug, 
             routine.Description,
             routine.CreatedAt,
             routine.UpdatedAt
@@ -210,7 +210,6 @@ public class RoutinesController : ControllerBase
         var userId = GetUserIdFromClaims(User);
         if (userId is null) return Unauthorized();
 
-        // 1. Pobierz dane z bazy z INCLUDE (ważne!)
         var r = await _db.Routines
             .Include(x => x.Days)
             .ThenInclude(d => d.Exercises)
@@ -218,14 +217,12 @@ public class RoutinesController : ControllerBase
 
         if (r is null) return NotFound();
 
-        // 2. Zmapuj dane do DTO (To tutaj brakowało 'Days'!)
         var dto = new
         {
             r.Id,
             r.Name,
             r.Description,
             r.CreatedAt,
-            // WAŻNE: Musisz przepisać strukturę Days i Exercises
             Days = r.Days.Select(d => new
             {
                 d.Id,
@@ -237,7 +234,7 @@ public class RoutinesController : ControllerBase
                     e.ExerciseId,
                     e.Name,
                     e.Order,
-                    e.Notes,       // Tu są zapisane serie/powtórzenia
+                    e.Notes,       // there is series/reps
                     e.RestSeconds
                 }).ToList()
             }).ToList()
@@ -264,11 +261,6 @@ public class RoutinesController : ControllerBase
         return NoContent();
     }
 
-    // NOWA METODA: GET BY SLUG
-    // Używamy innej trasy, żeby nie kolidowało z ID, np. routines/s/{slug}
-    // LUB po prostu sprawdzamy czy parametr to int czy string w jednej metodzie.
-    // Najczyściej dla React Routera będzie zrobić osobny endpoint, a frontend sobie wybierze.
-    
     [HttpGet("by-slug/{slug}")]
     [Authorize]
     public async Task<IActionResult> GetBySlug(string slug)
@@ -308,5 +300,53 @@ public class RoutinesController : ControllerBase
         };
 
         return Ok(dto);
+    }
+
+    // PUT /routines/{id}
+    [HttpPut("{id:int}")]
+    [Authorize]
+    public async Task<IActionResult> Update(int id, [FromBody] CreateRoutineDto dto)
+    {
+        var userId = GetUserIdFromClaims(User);
+        if (userId is null) return Unauthorized();
+
+        // 1. Fetch existing routine with children
+        var routine = await _db.Routines
+            .Include(r => r.Days)
+            .ThenInclude(d => d.Exercises)
+            .FirstOrDefaultAsync(r => r.Id == id && r.UserId == userId.Value);
+
+        if (routine is null) return NotFound();
+
+        // 2. Update basic fields
+        routine.Name = dto.Name.Trim();
+        routine.Description = dto.Description?.Trim();
+        routine.UpdatedAt = DateTime.UtcNow;
+
+        // 3. Replace children entities (Days & Exercises)
+        // This strategy avoids complex synchronization logic by removing old entries and adding new ones.
+        _db.RoutineDays.RemoveRange(routine.Days);
+        
+        routine.Days = dto.Days.Select(d => new RoutineDay
+        {
+            Name = d.Name.Trim(),
+            Notes = d.Notes,
+            Exercises = d.Exercises.Select(e => new RoutineExercise
+            {
+                ExerciseId = e.ExerciseId,
+                Name = e.ExerciseId, // Or fetch name from exercise DB if available
+                Order = e.Order,
+                TargetSets = e.TargetSets,
+                TargetRepsMin = e.TargetRepsMin,
+                TargetRepsMax = e.TargetRepsMax,
+                TargetRpe = e.TargetRpe,
+                RestSeconds = e.RestSeconds,
+                Notes = e.Notes
+            }).ToList()
+        }).ToList();
+
+        await _db.SaveChangesAsync();
+
+        return NoContent();
     }
 }

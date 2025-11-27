@@ -28,6 +28,19 @@ export type RoutineDto = {
   updatedAt: string;
 };
 
+// /routines/:id
+export async function updateRoutine(
+  id: string | number,
+  payload: RoutineCreateDto,
+  signal?: AbortSignal
+): Promise<void> {
+  return api<void>(`/routines/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+    signal,
+  });
+}
+
 // POST /routines
 export async function createRoutine(
   payload: RoutineCreateDto,
