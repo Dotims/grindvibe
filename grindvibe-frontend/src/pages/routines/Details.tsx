@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { ChevronLeft, Calendar, Dumbbell, Clock } from "lucide-react";
-import { motion } from "framer-motion";
+import { ChevronLeft, Calendar, Dumbbell, Clock, X } from "lucide-react"; // Added X icon
+import { motion, AnimatePresence } from "framer-motion"; // Added AnimatePresence
 
 import { Button } from "../../components/ui/button";
 import { Card, CardContent } from "../../components/ui/card";
@@ -35,6 +35,9 @@ export default function RoutineDetails() {
   const [routine, setRoutine] = useState<RoutineDetailsDto | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // State for the image preview modal
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
 
   useEffect(() => {
     if (!slug) return;
@@ -146,8 +149,12 @@ export default function RoutineDetails() {
                   >
                     <Card className="overflow-hidden rounded-2xl border border-border/50 bg-[color-mix(in_oklab,var(--gv-bg)_95%,#fff_5%)]">
                       <CardContent className="p-0 sm:flex">
-                        {/* Image */}
-                        <div className="shrink-0 bg-muted/30 sm:w-32 sm:border-r border-border/50 grid place-items-center p-2">
+                        
+                        {/* Image Thumbnail - Added onClick and cursor styles */}
+                        <div 
+                          className={`shrink-0 bg-muted/30 sm:w-32 sm:border-r border-border/50 grid place-items-center p-2 transition-colors ${img ? "cursor-zoom-in hover:bg-muted/50" : ""}`}
+                          onClick={() => img && setPreviewImage(img)}
+                        >
                           {img ? (
                             <img src={img} alt={ex.name} className="h-20 w-20 object-contain" loading="lazy" />
                           ) : (
@@ -200,6 +207,36 @@ export default function RoutineDetails() {
           </section>
         ))}
       </div>
+
+      {/* Full Screen Image Preview Overlay */}
+      <AnimatePresence>
+        {previewImage && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setPreviewImage(null)}
+            className="fixed inset-0 z-[999] grid place-items-center bg-black/90 backdrop-blur-sm p-4 cursor-zoom-out"
+          >
+            {/* Close button */}
+            <button className="absolute top-4 right-4 p-2 bg-white/10 rounded-full text-white hover:bg-white/20 transition">
+              <X className="h-6 w-6" />
+            </button>
+
+            <motion.img
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.8, opacity: 0 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              src={previewImage}
+              alt="Preview"
+              className="max-h-[85vh] max-w-[95vw] object-contain rounded-lg shadow-2xl"
+              onClick={(e) => e.stopPropagation()} // Prevent closing when clicking the image itself
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
     </main>
   );
 }
