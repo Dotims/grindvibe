@@ -8,6 +8,7 @@ export type RoutineCreateDto = {
     notes?: string | null;
     exercises: Array<{
       exerciseId: string;
+      name?: string;
       order: number;
       targetSets?: number | null;
       targetRepsMin?: number | null;

@@ -16,7 +16,6 @@ import { createRoutine, type RoutineCreateDto } from "../../api/routines";
 import {
   addDay,
   addExerciseToDay,
-  resetDraft,
   setDescription,
   setName,
   updateExercise,
@@ -24,6 +23,7 @@ import {
   type DraftDay,
   type DraftExercise,
   setDraft,
+  resetDraft, 
 } from "../../features/routines/routinesSlice";
 
 import { useExerciseSearch } from "../../hooks/useExerciseSearch";
@@ -32,9 +32,9 @@ import Num from "../../components/routines/Num";
 import { ACCENT, parseMeta, writeMeta, type NotesMeta, type SetRow, type SetType } from "../../lib/routinesMeta";
 
 export default function NewRoutinePage() {
+  const navigate = useNavigate(); 
   const draft = useAppSelector((s) => s.routines);
   const dispatch = useAppDispatch();
-  const navigate = useNavigate();
 
   useEffect(() => {
     if (!draft.days || draft.days.length === 0) dispatch(addDay({ name: "Day 1" }));
@@ -74,6 +74,7 @@ export default function NewRoutinePage() {
             notes: "",
             exercises: day.exercises.map((e: DraftExercise) => ({
               exerciseId: e.exerciseId,
+              name: e.name,
               order: e.order,
               targetSets: e.targetSets ?? null,
               targetRepsMin: e.targetRepsMin ?? null,
@@ -86,13 +87,16 @@ export default function NewRoutinePage() {
         ],
       };
 
-      const saved = await createRoutine(payload);
-      dispatch(resetDraft());
-      localStorage.removeItem('routineDraft'); 
-      navigate('/routines'); 
+      await createRoutine(payload);
+
+      // SUKCES:
+      dispatch(resetDraft()); // Wyczyść formularz w Redux
+      navigate("/routines");  // Przekieruj do listy rutyn
 
     } catch (e: unknown) {
       console.error("Routine save failed:", e);
+      setSaveLoading(false); // <--- Odblokuj przycisk TYLKO gdy wystąpi błąd
+      
       if (isApiError(e)) {
         // fallback jeśli backend nie zwróci 'message'
         setError({
@@ -102,8 +106,6 @@ export default function NewRoutinePage() {
       } else {
         setError({ status: 0, message: "Failed to save routine." });
       }
-    } finally {
-      setSaveLoading(false);
     }
   };
 

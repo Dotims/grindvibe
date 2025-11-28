@@ -58,6 +58,7 @@ public class RoutinesController : ControllerBase
     // grindvibe-frontend/src/api/routines.ts
     public record CreateRoutineExerciseDto(
         string ExerciseId,
+        string? Name,
         int Order,
         int? TargetSets,
         int? TargetRepsMin,
@@ -129,18 +130,19 @@ public class RoutinesController : ControllerBase
 
         var routine = new Routine
         {
-            Name = dto.Name.Trim(),
-            Slug = GenerateSlug(dto.Name.Trim()), // <--- GENERUJEMY SLUG
-            Description = dto.Description?.Trim(),
             UserId = userId.Value,
+            Name = dto.Name,
+            Description = dto.Description,
+            Slug = GenerateSlug(dto.Name),
+            CreatedAt = DateTime.UtcNow,
             Days = dto.Days.Select(d => new RoutineDay
             {
-                Name = d.Name.Trim(),
+                Name = d.Name,
                 Notes = d.Notes,
                 Exercises = d.Exercises.Select(e => new RoutineExercise
                 {
                     ExerciseId = e.ExerciseId,
-                    Name = e.ExerciseId, // Tymczasowo ID jako nazwa, jeśli front nie wysyła nazwy
+                    Name = e.Name ?? e.ExerciseId, // <--- KLUCZOWA ZMIANA: Zapisujemy nazwę
                     Order = e.Order,
                     TargetSets = e.TargetSets,
                     TargetRepsMin = e.TargetRepsMin,
