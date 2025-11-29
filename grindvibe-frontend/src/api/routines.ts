@@ -76,3 +76,8 @@ export async function deleteRoutine(id: string): Promise<void> {
     method: "DELETE",
   });
 }
+
+// POST /workouts
+export async function finishWorkout(payload: any) {
+  return api("/workouts", { method: "POST", body: JSON.stringify(payload) });
+}

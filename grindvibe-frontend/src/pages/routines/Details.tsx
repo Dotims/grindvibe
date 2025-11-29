@@ -7,6 +7,8 @@ import { Button } from "../../components/ui/button";
 import { Card, CardContent } from "../../components/ui/card";
 import { Notice } from "../../components/ui/Notice";
 import { getRoutineBySlug, getRoutine } from "../../api/routines";
+import { startWorkout, type ActiveExercise } from "../../features/workout/workoutSlice";
+import { useAppDispatch } from "../../store/hooks";
 import { parseMeta, ACCENT } from "../../lib/routinesMeta";
 
 // Type definition for the API response
@@ -31,6 +33,7 @@ type RoutineDetailsDto = {
 };
 
 export default function RoutineDetails() {
+  const dispatch = useAppDispatch(); // Add dispatch
   const { slug } = useParams<{ slug: string }>();
   const [routine, setRoutine] = useState<RoutineDetailsDto | null>(null);
   const [loading, setLoading] = useState(true);
@@ -75,6 +78,46 @@ export default function RoutineDetails() {
     return () => { mounted = false; };
   }, [slug]);
 
+  const handleStartWorkout = () => {
+    if (!routine) return;
+
+    // 1. Map routine data to Active Workout format
+    const activeExercises: ActiveExercise[] = [];
+    
+    routine.days.forEach(day => {
+      day.exercises.forEach(ex => {
+        const meta = parseMeta(ex.notes);
+        
+        activeExercises.push({
+          id: crypto.randomUUID(),
+          exerciseId: ex.exerciseId,
+          name: ex.name,
+          sets: meta.sets.map((s, idx) => ({
+            id: crypto.randomUUID(),
+            setNumber: idx + 1,
+            targetWeight: s.weight,
+            targetRepsMin: s.repsMin,
+            targetRepsMax: s.repsMax,
+            actualWeight: s.weight ? String(s.weight) : "", // Pre-fill if target exists? Or leave empty? Let's leave empty for user input
+            actualReps: "",
+            actualRpe: "",
+            completed: false
+          }))
+        });
+      });
+    });
+
+    // 2. Dispatch start action
+    dispatch(startWorkout({
+      routineId: routine.id,
+      routineName: routine.name,
+      exercises: activeExercises
+    }));
+
+    // 3. Navigate to the workout page (assuming it's at /workout)
+    // navigate('/workout');
+  };
+
   if (loading) return <div className="p-10 text-center text-muted-foreground">Loading...</div>;
 
   if (error || !routine) {
@@ -112,7 +155,7 @@ export default function RoutineDetails() {
               </Link>
             </Button>
 
-            <Button className="rounded-full" style={{ backgroundColor: ACCENT }}>
+            <Button className="rounded-full" style={{ backgroundColor: ACCENT }} onClick={handleStartWorkout}>
               Start Workout
             </Button>
           </div>

@@ -12,6 +12,7 @@ import RoutinesPage from "../pages/routines";
 import NewRoutinePage from "../pages/routines/New";
 import RoutineDetails from "../pages/routines/Details";
 import EditRoutinePage from "../pages/routines/Edit";
+import ActiveWorkoutPage from "../pages/workout/Active";
 
 export default function AppRouter() {
   return (
@@ -37,6 +38,7 @@ export default function AppRouter() {
           <Route path="/routines/new" element={<NewRoutinePage />} />
           {/* Edit Route */}
           <Route path="/routines/:slug/edit" element={<EditRoutinePage />} />
+          <Route path="/workout/active" element={<ActiveWorkoutPage />} />
         </Route>
 
         {/* 2. List of routines */}
