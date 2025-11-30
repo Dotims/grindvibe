@@ -109,19 +109,22 @@ public class RoutinesController : ControllerBase
     [Authorize]
     public async Task<IActionResult> Create([FromBody] CreateRoutineDto dto)
     {
-        Console.WriteLine("--> Otrzymano żądanie POST /routines"); // Log wejścia
+        // Request log
+        Console.WriteLine("--> Received POST /routines"); 
 
         var userId = GetUserIdFromClaims(User);
         
         if (userId is null) 
         {
-            Console.WriteLine("--> BŁĄD: Nie udało się odczytać userId z tokena.");
-            return Unauthorized("Nieprawidłowy token - brak ID.");
+            // ERROR: Could not read userId from token
+            Console.WriteLine("--> ERROR: Could not read userId from token.");
+            return Unauthorized("Invalid token - missing ID.");
         }
 
-        Console.WriteLine($"--> Sukces: Użytkownik ID: {userId}");
+        // Success: User ID
+        Console.WriteLine($"--> Success: User ID: {userId}");
 
-        // Walidacja
+        // Validation
         if (string.IsNullOrWhiteSpace(dto.Name))
             return BadRequest(new { message = "Name is required" });
 
@@ -142,7 +145,7 @@ public class RoutinesController : ControllerBase
                 Exercises = d.Exercises.Select(e => new RoutineExercise
                 {
                     ExerciseId = e.ExerciseId,
-                    Name = e.Name ?? e.ExerciseId, // <--- KLUCZOWA ZMIANA: Zapisujemy nazwę
+                    Name = e.ExerciseId, // Temporary: use ID as name if not provided
                     Order = e.Order,
                     TargetSets = e.TargetSets,
                     TargetRepsMin = e.TargetRepsMin,
@@ -162,9 +165,9 @@ public class RoutinesController : ControllerBase
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"--> BŁĄD BAZY DANYCH: {ex.Message}");
-            // Jeśli tu wejdzie, to znaczy że migracja nie poszła
-            return StatusCode(500, new { message = "Błąd zapisu do bazy", detail = ex.Message });
+            // Database save failed
+            Console.WriteLine($"--> DATABASE ERROR: {ex.Message}");
+            return StatusCode(500, new { message = "Database save error", detail = ex.Message });
         }
 
         // Zwracamy DTO z nowym slugiem
@@ -180,7 +183,7 @@ public class RoutinesController : ControllerBase
         return CreatedAtAction(nameof(GetById), new { id = routine.Id }, outDto);
     }
 
-    // GET /routines – lista moich
+    // GET /routines - list mine
     [HttpGet]
     [Authorize]
     public async Task<ActionResult<List<RoutineDto>>> ListMine()
@@ -212,6 +215,7 @@ public class RoutinesController : ControllerBase
         var userId = GetUserIdFromClaims(User);
         if (userId is null) return Unauthorized();
 
+        // 1. Fetch data with INCLUDE (important!)
         var r = await _db.Routines
             .Include(x => x.Days)
             .ThenInclude(d => d.Exercises)
@@ -219,12 +223,14 @@ public class RoutinesController : ControllerBase
 
         if (r is null) return NotFound();
 
+        // 2. Map to DTO
         var dto = new
         {
             r.Id,
             r.Name,
             r.Description,
             r.CreatedAt,
+            // Map Days and Exercises structure
             Days = r.Days.Select(d => new
             {
                 d.Id,
@@ -236,7 +242,7 @@ public class RoutinesController : ControllerBase
                     e.ExerciseId,
                     e.Name,
                     e.Order,
-                    e.Notes,       // there is series/reps
+                    e.Notes,       // Sets/reps stored here
                     e.RestSeconds
                 }).ToList()
             }).ToList()

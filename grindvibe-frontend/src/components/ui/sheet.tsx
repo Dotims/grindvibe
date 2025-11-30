@@ -3,7 +3,7 @@ import * as SheetPrimitive from "@radix-ui/react-dialog"
 import { XIcon } from "lucide-react"
 import { cn } from "../../lib/utils"
 
-/** Root / Trigger / Close / Portal — bez zmian API */
+/** Root / Trigger / Close / Portal - standard API */
 function Sheet(props: React.ComponentProps<typeof SheetPrimitive.Root>) {
   return <SheetPrimitive.Root data-slot="sheet" {...props} />
 }
@@ -17,7 +17,7 @@ function SheetPortal(props: React.ComponentProps<typeof SheetPrimitive.Portal>) 
   return <SheetPrimitive.Portal data-slot="sheet-portal" {...props} />
 }
 
-/** Overlay — ciemny, z animacjami i właściwym z-index */
+/** Overlay - dark, animated, correct z-index */
 function SheetOverlay({
   className,
   ...props
@@ -36,7 +36,7 @@ function SheetOverlay({
   )
 }
 
-/** Content — jeden działający X, animacje, pełne tło */
+/** Content - close button, animations, full background */
 function SheetContent({
   className,
   children,
@@ -62,9 +62,9 @@ function SheetContent({
         data-side={side}
         className={cn(
           "fixed z-[70] flex flex-col gap-4 p-0 outline-none shadow-lg",
-          // animacje open/close (wymaga tailwindcss-animate w configu)
+          // animations open/close (requires tailwindcss-animate in config)
           "data-[state=open]:animate-in data-[state=closed]:animate-out duration-300",
-          // tła wg zmiennych z index.css (nieprzezroczyste)
+          // backgrounds according to index.css (not transparent)
           "bg-white text-black dark:bg-[#0B0B0F] dark:text-white",
           sideClasses,
           className
@@ -91,7 +91,7 @@ function SheetContent({
   )
 }
 
-/** Dodatkowe helpery — zostawiam jak u Ciebie */
+/** Additional helpers */
 function SheetHeader({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div data-slot="sheet-header" className={cn("flex flex-col gap-1.5 p-4", className)} {...props} />

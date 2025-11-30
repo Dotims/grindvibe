@@ -51,16 +51,16 @@ export async function createRoutine(
     method: "POST",
     body: JSON.stringify(payload),
     signal,
-    // headers „Content-Type” + „Authorization” są dodawane w client.ts
+    // Headers 'Content-Type' + 'Authorization' are added in client.ts
   });
 }
 
-// GET /routines (lista moich)
+// GET /routines (list mine)
 export async function listMyRoutines(signal?: AbortSignal): Promise<RoutineDto[]> {
   return api<RoutineDto[]>("/routines", { method: "GET", signal });
 }
 
-// (opcjonalnie) GET /routines/:id – przyda się do edytora
+// (Optional) GET /routines/:id - useful for editor
 export async function getRoutine(id: string, signal?: AbortSignal) {
   return api(`/routines/${id}`, { method: "GET", signal });
 }

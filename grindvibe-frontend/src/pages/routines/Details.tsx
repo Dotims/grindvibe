@@ -165,7 +165,7 @@ export default function RoutineDetails() {
       {/* Days & Exercises */}
       <div className="space-y-10">
         
-        {/* --- DODAJ TO --- */}
+        {/* Empty state */}
         {(!routine.days || routine.days.length === 0) && (
            <div className="flex flex-col items-center justify-center py-16 border border-dashed border-border/50 rounded-3xl bg-muted/5 text-center">
              <Dumbbell className="h-10 w-10 text-muted-foreground mb-4 opacity-50" />

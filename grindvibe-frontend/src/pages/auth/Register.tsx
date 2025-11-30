@@ -72,11 +72,10 @@ export default function RegisterPage() {
     >
       {/* Siatka tła (subtelna) */}
       <div
-        aria-hidden
         className="pointer-events-none fixed inset-0 -z-10 bg-[linear-gradient(to_right,rgba(0,0,0,0.06)_1px,transparent_1px),linear-gradient(to_bottom,rgba(0,0,0,0.06)_1px,transparent_1px)] bg-[size:36px_36px] opacity-[0.16] dark:bg-[linear-gradient(to_right,rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.06)_1px,transparent_1px)] dark:opacity-[0.12]"
       />
 
-      {/* Orby akcentowe */}
+      {/* Accent orbs */}
       <motion.div
         aria-hidden
         className="pointer-events-none fixed inset-0 -z-10"
@@ -104,11 +103,11 @@ export default function RegisterPage() {
             <div className="rounded-2xl border border-white/40 bg-white/65 backdrop-blur-xl dark:border-white/10 dark:bg-zinc-900/50">
               <Card className="rounded-2xl border-0 bg-transparent shadow-none">
                 <CardContent className="p-6 sm:p-8">
-                  {/* Nagłówek */}
+                  {/* Header */}
                   <div className="mb-6 text-center">
-                    <h2 className="text-2xl font-bold tracking-tight">Załóż konto</h2>
+                    <h2 className="text-2xl font-bold tracking-tight">Create Account</h2>
                     <p className="mt-2 text-sm text-muted-foreground">
-                      Wypełnij pola lub użyj Google.
+                      Fill in the fields or use Google
                     </p>
                   </div>
 

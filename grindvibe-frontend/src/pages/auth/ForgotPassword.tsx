@@ -19,7 +19,7 @@ export default function ForgotPassword() {
     setError(null);
     setIsLoading(true);
 
-    // TODO: wywołanie backendu C# (POST /api/auth/forgot)
+    // TODO: Call C# backend (POST /api/auth/forgot)
     setTimeout(() => {
       setIsLoading(false);
       setMsg("Jeśli podany e-mail istnieje w naszym systemie, wysłaliśmy link do resetu hasła.");
@@ -40,7 +40,7 @@ export default function ForgotPassword() {
         className="pointer-events-none fixed inset-0 -z-10 bg-[linear-gradient(to_right,rgba(0,0,0,0.06)_1px,transparent_1px),linear-gradient(to_bottom,rgba(0,0,0,0.06)_1px,transparent_1px)] bg-[size:36px_36px] opacity-[0.16] dark:bg-[linear-gradient(to_right,rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.06)_1px,transparent_1px)] dark:opacity-[0.12]"
       />
 
-      {/* Orby */}
+      {/* Orbs */}
       <motion.div
         aria-hidden
         className="pointer-events-none fixed inset-0 -z-10"
@@ -60,15 +60,20 @@ export default function ForgotPassword() {
         />
       </motion.div>
 
-      {/* Centrum */}
-      <div className="mx-auto flex min-h-[85vh] w-full max-w-6xl items-center justify-center px-6 py-12 md:py-16">
-        <div className="w-full max-w-md">
+      {/* Center */}
+      <div className="relative z-10 flex w-full max-w-md flex-col items-center justify-center p-4">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          className="w-full"
+        >
           {/* Gradient border + glass */}
           <div className="rounded-2xl bg-gradient-to-b from-white/70 via-white/55 to-white/40 p-[1px] shadow-[0_8px_50px_-12px_rgba(0,0,0,0.35)] backdrop-blur-xl dark:from-zinc-800/55 dark:via-zinc-800/45 dark:to-zinc-900/40 dark:shadow-[0_8px_50px_-12px_rgba(0,0,0,0.7)]">
             <div className="rounded-2xl border border-white/40 bg-white/65 backdrop-blur-xl dark:border-white/10 dark:bg-zinc-900/50">
               <Card className="rounded-2xl border-0 bg-transparent shadow-none">
                 <CardContent className="p-6 sm:p-8">
-                  {/* Nagłówek */}
+                  {/* Header */}
                   <div className="mb-6 text-center">
                     <h1 className="text-2xl font-bold tracking-tight">Reset hasła</h1>
                     <p className="mt-2 text-sm text-muted-foreground">
@@ -76,7 +81,7 @@ export default function ForgotPassword() {
                     </p>
                   </div>
 
-                  {/* Formularz */}
+                  {/* Form */}
                   <form onSubmit={onSubmit} className="grid gap-5">
                     <div className="grid gap-2">
                       <Label htmlFor="email">Adres e-mail</Label>
@@ -142,7 +147,7 @@ export default function ForgotPassword() {
               </Card>
             </div>
           </div>
-        </div>
+        </motion.div>
       </div>
     </section>
   );
