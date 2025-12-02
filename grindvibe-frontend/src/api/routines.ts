@@ -78,6 +78,21 @@ export async function deleteRoutine(id: string): Promise<void> {
 }
 
 // POST /workouts
-export async function finishWorkout(payload: any) {
+export type FinishWorkoutDto = {
+  routineId: number | null;
+  name: string;
+  startedAt: string;
+  endedAt: string;
+  sets: Array<{
+    exerciseId: string;
+    exerciseName: string;
+    setNumber: number;
+    weight: number | null;
+    reps: number | null;
+    rpe: number | null;
+  }>;
+};
+
+export async function finishWorkout(payload: FinishWorkoutDto) {
   return api("/workouts", { method: "POST", body: JSON.stringify(payload) });
 }
