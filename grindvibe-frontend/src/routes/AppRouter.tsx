@@ -31,21 +31,16 @@ export default function AppRouter() {
         <Route path="/exercises" element={ <Exercises />} />
         <Route path="/exercises/:id" element={ <ExerciseDetail />} />
 
-        {/* --- ROUTINES --- */}
-        
-        {/* 1. Create new routine (Protected) */}
         <Route element={<RequireAuth />}>
           <Route path="/routines/new" element={<NewRoutinePage />} />
-          {/* Edit Route */}
           <Route path="/routines/:slug/edit" element={<EditRoutinePage />} />
+          
           <Route path="/workout/active" element={<ActiveWorkoutPage />} />
-        </Route>
 
-        {/* 2. List of routines */}
-        <Route path="/routines" element={ <RoutinesPage />} />
-        
-        {/* 3. Single routine details (Dynamic parameter last) */}
-        <Route path="/routines/:slug" element={ <RoutineDetails />} />
+          <Route path="/routines" element={ <RoutinesPage />} />
+          
+          <Route path="/routines/:id" element={ <RoutineDetails />} />
+        </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
