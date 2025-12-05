@@ -13,6 +13,9 @@ namespace grindvibe_backend.Data
         public DbSet<RoutineDay> RoutineDays => Set<RoutineDay>();
         public DbSet<RoutineExercise> RoutineExercises => Set<RoutineExercise>();
 
+        public DbSet<WorkoutSession> WorkoutSessions => Set<WorkoutSession>();
+        public DbSet<WorkoutSet> WorkoutSets => Set<WorkoutSet>();
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);

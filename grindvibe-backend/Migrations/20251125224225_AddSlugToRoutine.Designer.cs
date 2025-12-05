@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using grindvibe_backend.Data;
 
@@ -10,9 +11,11 @@ using grindvibe_backend.Data;
 namespace GrindVibeAPI.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251125224225_AddSlugToRoutine")]
+    partial class AddSlugToRoutine
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.8");
@@ -160,76 +163,6 @@ namespace GrindVibeAPI.Migrations
                     b.ToTable("Users");
                 });
 
-            modelBuilder.Entity("grindvibe_backend.Models.WorkoutSession", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime?>("EndedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<int?>("RoutineId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("StartedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("INTEGER");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("RoutineId");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("WorkoutSessions");
-                });
-
-            modelBuilder.Entity("grindvibe_backend.Models.WorkoutSet", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("CompletedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("ExerciseId")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("ExerciseName")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<int?>("Reps")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<double?>("Rpe")
-                        .HasColumnType("REAL");
-
-                    b.Property<int>("SetNumber")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<double?>("Weight")
-                        .HasColumnType("REAL");
-
-                    b.Property<int>("WorkoutSessionId")
-                        .HasColumnType("INTEGER");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("WorkoutSessionId");
-
-                    b.ToTable("WorkoutSets");
-                });
-
             modelBuilder.Entity("grindvibe_backend.Models.Routine", b =>
                 {
                     b.HasOne("grindvibe_backend.Models.User", "User")
@@ -263,32 +196,6 @@ namespace GrindVibeAPI.Migrations
                     b.Navigation("RoutineDay");
                 });
 
-            modelBuilder.Entity("grindvibe_backend.Models.WorkoutSession", b =>
-                {
-                    b.HasOne("grindvibe_backend.Models.Routine", "Routine")
-                        .WithMany()
-                        .HasForeignKey("RoutineId");
-
-                    b.HasOne("grindvibe_backend.Models.User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Routine");
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("grindvibe_backend.Models.WorkoutSet", b =>
-                {
-                    b.HasOne("grindvibe_backend.Models.WorkoutSession", null)
-                        .WithMany("Sets")
-                        .HasForeignKey("WorkoutSessionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
             modelBuilder.Entity("grindvibe_backend.Models.Routine", b =>
                 {
                     b.Navigation("Days");
@@ -297,11 +204,6 @@ namespace GrindVibeAPI.Migrations
             modelBuilder.Entity("grindvibe_backend.Models.RoutineDay", b =>
                 {
                     b.Navigation("Exercises");
-                });
-
-            modelBuilder.Entity("grindvibe_backend.Models.WorkoutSession", b =>
-                {
-                    b.Navigation("Sets");
                 });
 #pragma warning restore 612, 618
         }

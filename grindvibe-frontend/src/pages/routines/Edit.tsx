@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { Search, Trash2, Save, ChevronLeft, ChevronRight, Plus, ChevronDown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -11,19 +11,19 @@ import { Notice } from "../../components/ui/Notice";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import type { ExerciseDto } from "../../api/exercises";
 import { isApiError, type ApiError } from "../../api/client";
-import { createRoutine, type RoutineCreateDto } from "../../api/routines";
+import { updateRoutine, getRoutine, getRoutineBySlug, type RoutineCreateDto } from "../../api/routines";
 
 import {
-  addDay,
+//   addDay,
   addExerciseToDay,
+  resetDraft,
   setDescription,
   setName,
   updateExercise,
   removeExercise,
+  loadDraftFromApi,
   type DraftDay,
   type DraftExercise,
-  setDraft,
-  resetDraft, 
 } from "../../features/routines/routinesSlice";
 
 import { useExerciseSearch } from "../../hooks/useExerciseSearch";
@@ -31,28 +31,58 @@ import ExerciseTile from "../../components/routines/ExerciseTile";
 import Num from "../../components/routines/Num";
 import { ACCENT, parseMeta, writeMeta, type NotesMeta, type SetRow, type SetType } from "../../lib/routinesMeta";
 
-export default function NewRoutinePage() {
-  const navigate = useNavigate(); 
+export default function EditRoutinePage() {
+  const { slug } = useParams<{ slug: string }>();
   const draft = useAppSelector((s) => s.routines);
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
 
+  // Local state for the ID of the routine being edited
+  const [routineId, setRoutineId] = useState<number | null>(null);
+  const [initLoading, setInitLoading] = useState(true);
+
+  // Load original routine data
   useEffect(() => {
-    if (!draft.days || draft.days.length === 0) dispatch(addDay({ name: "Day 1" }));
-  }, [dispatch, draft.days]);
+    if (!slug) return;
+    const mounted = true;
+
+    async function load() {
+      try {
+        setInitLoading(true);
+        const isId = /^\d+$/.test(slug!);
+        // Fetch data using ID or Slug
+        const data = isId 
+            ? await getRoutine(slug!) 
+            : await getRoutineBySlug(slug!);
+        
+        if (mounted) {
+            setRoutineId(data.id);
+            dispatch(loadDraftFromApi(data));
+        }
+      } catch (err) {
+        console.error("Failed to load routine", err);
+        navigate('/routines');
+      } finally {
+        if (mounted) setInitLoading(false);
+      }
+    }
+    load();
+    
+    // Cleanup draft on unmount
+    return () => { dispatch(resetDraft()); };
+  }, [slug, dispatch, navigate]);
 
   const day: DraftDay | undefined = draft.days[0];
 
-  // browse/search
+  // Search logic
   const [q, setQ] = useState<string>("");
   const [page, setPage] = useState<number>(1);
   const pageSize = 12;
   const { result, loading, totalPages } = useExerciseSearch(q, page, pageSize);
 
-  // save/error
+  // Save state
   const [saveLoading, setSaveLoading] = useState<boolean>(false);
   const [error, setError] = useState<ApiError | null>(null);
-
-  // flash on add
   const [addedStamp, setAddedStamp] = useState<number>(0);
 
   const canSave = useMemo(
@@ -61,7 +91,7 @@ export default function NewRoutinePage() {
   );
 
   const onSave = async (): Promise<void> => {
-    if (!day) return;
+    if (!day || !routineId) return;
     setError(null);
     setSaveLoading(true);
     try {
@@ -74,7 +104,6 @@ export default function NewRoutinePage() {
             notes: "",
             exercises: day.exercises.map((e: DraftExercise) => ({
               exerciseId: e.exerciseId,
-              name: e.name,
               order: e.order,
               targetSets: e.targetSets ?? null,
               targetRepsMin: e.targetRepsMin ?? null,
@@ -87,28 +116,25 @@ export default function NewRoutinePage() {
         ],
       };
 
-      await createRoutine(payload);
-
-      // SUKCES:
-      dispatch(resetDraft()); // Wyczyść formularz w Redux
-      navigate("/routines");  // Przekieruj do listy rutyn
+      // Call UPDATE instead of CREATE
+      await updateRoutine(routineId, payload);
+      
+      dispatch(resetDraft());
+      navigate('/routines'); 
 
     } catch (e: unknown) {
-      console.error("Routine save failed:", e);
-      setSaveLoading(false); // <--- Odblokuj przycisk TYLKO gdy wystąpi błąd
-      
+      console.error("Routine update failed:", e);
       if (isApiError(e)) {
-        // fallback jeśli backend nie zwróci 'message'
-        setError({
-          ...e,
-          message: e.message || "Nie udało się zapisać rutyny.",
-        });
+        setError({ ...e, message: e.message || "Failed to update routine." });
       } else {
-        setError({ status: 0, message: "Failed to save routine." });
+        setError({ status: 0, message: "Failed to update routine." });
       }
+    } finally {
+      setSaveLoading(false);
     }
   };
 
+  // ... Helper functions (same as New.tsx) ...
   const addExercise = (x: ExerciseDto) => {
     if (!day) return;
     const meta: NotesMeta = {
@@ -118,8 +144,7 @@ export default function NewRoutinePage() {
         : (x.videoUrl ?? x.imageUrl ?? null),
       sets: [{ weight: null, repsMin: null, repsMax: null, rpe: null, restSeconds: null }],
     };
-    dispatch(
-      addExerciseToDay({
+    dispatch(addExerciseToDay({
         dayId: day.id,
         exercise: {
           exerciseId: String(x.id),
@@ -140,7 +165,6 @@ export default function NewRoutinePage() {
   const handleDescChange = (e: React.ChangeEvent<HTMLInputElement>) => dispatch(setDescription(e.target.value));
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => { setPage(1); setQ(e.target.value); };
 
-  // set operations
   const addSet = (ex: DraftExercise) => {
     if (!day) return;
     const meta = parseMeta(ex.notes);
@@ -167,41 +191,19 @@ export default function NewRoutinePage() {
     dispatch(updateExercise({ dayId: day.id, exId: ex.id, patch: { notes: writeMeta(meta) } }));
   };
 
-  useEffect(() => {
-    const savedRoutine = localStorage.getItem('routineDraft');
-    if (savedRoutine) {
-      dispatch(setDraft(JSON.parse(savedRoutine)));
-    }
-  }, [dispatch]);
-
-  // Persist draft to localStorage so it survives page refresh
-  useEffect(() => {
-    try {
-      const hasData =
-        draft.name.trim().length > 0 ||
-        (draft.days && draft.days.some((d) => d.exercises.length > 0));
-
-      if (hasData) {
-        localStorage.setItem('routineDraft', JSON.stringify(draft));
-      } else {
-        localStorage.removeItem('routineDraft');
-      }
-    } catch (err) {
-      console.warn('Failed to persist routine draft', err);
-    }
-  }, [draft]);
+  if (initLoading) return <div className="p-10 text-center text-muted-foreground">Loading routine...</div>;
 
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-10 bg-[var(--gv-bg)] text-[var(--gv-text)]">
       {/* Header */}
       <div className="mb-8 flex items-start justify-between gap-4">
         <div className="flex-1">
-          <h1 className="text-2xl font-bold tracking-tight">Nowa rutyna</h1>
-          <p className="text-sm text-muted-foreground">Dodawaj ćwiczenia i konfiguruj serie (min/max, waga, RPE, przerwy).</p>
+          <h1 className="text-2xl font-bold tracking-tight">Edytuj rutynę</h1>
+          <p className="text-sm text-muted-foreground">Zmodyfikuj ćwiczenia i zestawy.</p>
         </div>
         <Button onClick={onSave} disabled={!canSave || saveLoading} className="gap-2 rounded-full cursor-pointer" style={{ backgroundColor: ACCENT }}>
           <Save className="h-4 w-4" />
-          {saveLoading ? "Zapisuję…" : "Zapisz"}
+          {saveLoading ? "Zapisywanie..." : "Zapisz zmiany"}
         </Button>
       </div>
 
@@ -212,7 +214,7 @@ export default function NewRoutinePage() {
         </Notice>
       )}
 
-      {/* Meta */}
+      {/* Name & Description */}
       <Card className="mb-6 rounded-2xl border border-border/40 bg-background/60 shadow-[0_6px_24px_-10px_rgba(0,0,0,0.35)]">
         <CardContent className="p-4 grid gap-3 sm:grid-cols-2">
           <div>
@@ -221,27 +223,28 @@ export default function NewRoutinePage() {
           </div>
           <div>
             <label className="text-sm mb-1 block">Opis (opcjonalnie)</label>
-            <Input value={draft.description ?? ""} onChange={handleDescChange} placeholder="Krótki opis planu" />
+            <Input value={draft.description ?? ""} onChange={handleDescChange} placeholder="Krótki opis" />
           </div>
         </CardContent>
       </Card>
 
-      {/* 2/5 : 3/5 layout */}
+      {/* Main Layout */}
       <div className="grid gap-6 lg:grid-cols-5">
-        {/* LEFT (2/5) */}
+        
+        {/* LEFT: Exercise Search */}
         <Card className="rounded-2xl border border-border/40 bg-background/60 shadow-[0_8px_28px_-14px_rgba(0,0,0,0.45)] lg:col-span-2 lg:sticky lg:top-24 max-h-[70vh] overflow-auto">
           <CardContent className="p-4">
             <div className="mb-4">
-              <label className="text-sm mb-1 block">Szukaj ćwiczenia</label>
+              <label className="text-sm mb-1 block">Szukaj ćwiczeń</label>
               <div className="relative">
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 opacity-70" />
-                <Input placeholder="np. Bench press…" className="pl-8" value={q} onChange={handleSearchChange} />
+                <Input placeholder="np. Wyciskanie na ławce..." className="pl-8" value={q} onChange={handleSearchChange} />
               </div>
             </div>
 
             {loading && (
               <div className="grid place-items-center rounded-xl border border-dashed p-8 text-sm text-muted-foreground">
-                Ładowanie ćwiczeń…
+                Ładowanie...
               </div>
             )}
 
@@ -289,7 +292,7 @@ export default function NewRoutinePage() {
           </CardContent>
         </Card>
 
-        {/* RIGHT (3/5) */}
+        {/* RIGHT: Routine Builder */}
         <div className="lg:col-span-3 space-y-3">
           <AnimatePresence initial={false}>
             {!day || day.exercises.length === 0 ? (
@@ -348,18 +351,18 @@ export default function NewRoutinePage() {
                             </Button>
                           </div>
 
-                          {/* series type */}
+                          {/* Set Type */}
                           <div className="mt-2 grid grid-cols-2 sm:grid-cols-6 gap-2">
                             <div className="col-span-2 sm:col-span-2">
-                              <label className="text-xs block mb-1">Typ serii</label>
+                              <label className="text-xs block mb-1">Typ zestawu</label>
                               <div className="relative">
                                 <select
                                   value={meta.type}
                                   onChange={(e) => updateSetType(ex, e.target.value as SetType)}
                                   className="gv-select h-9 w-full rounded-full border px-3 pr-10 text-sm appearance-none cursor-pointer"
                                 >
-                                  <option value="normal">Normal</option>
-                                  <option value="warmup">Warm-up</option>
+                                  <option value="normal">Normalny</option>
+                                  <option value="warmup">Rozgrzewka</option>
                                   <option value="dropset">Drop-set</option>
                                 </select>
                                 <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 opacity-70" />
@@ -369,7 +372,7 @@ export default function NewRoutinePage() {
                         </div>
                       </div>
 
-                      {/* Serie */}
+                      {/* Sets */}
                       <div className="mt-3 space-y-2">
                         <AnimatePresence initial={false}>
                           {meta.sets.map((s, sIdx) => (
@@ -383,24 +386,24 @@ export default function NewRoutinePage() {
                             >
                               <div className="mb-2 flex items-center justify-between">
                                 <span className="text-xs font-medium" style={{ color: ACCENT }}>
-                                  Seria #{sIdx + 1}
+                                  Zestaw #{sIdx + 1}
                                 </span>
                                 <button
                                   type="button"
                                   onClick={() => removeSet(ex, sIdx)}
                                   disabled={meta.sets.length <= 1}
                                   className="h-8 px-2 text-xs rounded-md hover:bg-accent/30 transition cursor-pointer disabled:opacity-50"
-                                  title="Usuń serię"
+                                  title="Usuń zestaw"
                                 >
                                   Usuń
                                 </button>
                               </div>
                               <div className="grid grid-cols-2 lg:grid-cols-5 gap-2">
-                                <Num label="Ciężar (kg)" value={s.weight ?? null} onChange={(v) => updateSetField(ex, sIdx, "weight", v)} placeholder="np. 60" />
-                                <Num label="Powt. MIN" value={s.repsMin ?? null} onChange={(v) => updateSetField(ex, sIdx, "repsMin", v)} placeholder="np. 8" />
-                                <Num label="Powt. MAX" value={s.repsMax ?? null} onChange={(v) => updateSetField(ex, sIdx, "repsMax", v)} placeholder="np. 12" />
+                                <Num label="Waga (kg)" value={s.weight ?? null} onChange={(v) => updateSetField(ex, sIdx, "weight", v)} placeholder="np. 60" />
+                                <Num label="Powtórzenia MIN" value={s.repsMin ?? null} onChange={(v) => updateSetField(ex, sIdx, "repsMin", v)} placeholder="np. 8" />
+                                <Num label="Powtórzenia MAX" value={s.repsMax ?? null} onChange={(v) => updateSetField(ex, sIdx, "repsMax", v)} placeholder="np. 12" />
                                 <Num label="RPE" value={s.rpe ?? null} onChange={(v) => updateSetField(ex, sIdx, "rpe", v)} placeholder="np. 8" />
-                                <Num label="Przerwa (s)" value={s.restSeconds ?? null} onChange={(v) => updateSetField(ex, sIdx, "restSeconds", v)} placeholder="np. 90" />
+                                <Num label="Odpoczynek (s)" value={s.restSeconds ?? null} onChange={(v) => updateSetField(ex, sIdx, "restSeconds", v)} placeholder="np. 90" />
                               </div>
                             </motion.div>
                           ))}
@@ -413,7 +416,7 @@ export default function NewRoutinePage() {
                             className="mt-1 inline-flex items-center gap-2 rounded-full border px-3 py-2 text-sm cursor-pointer transition"
                             style={{ borderColor: ACCENT, color: ACCENT }}
                           >
-                            <Plus className="h-4 w-4" /> Dodaj serię
+                            <Plus className="h-4 w-4" /> Dodaj zestaw
                           </button>
                         </div>
                       </div>

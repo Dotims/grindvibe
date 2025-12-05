@@ -139,7 +139,7 @@ export default function ExerciseModal({ open, onOpenChange, exercise }: Props) {
               </div>
             )}
 
-            {/* Instrukcje */}
+            {/* Instructions */}
             {instructions.length > 0 && (
               <div className="space-y-2">
                 <h3 className="text-sm font-semibold">Instrukcje</h3>

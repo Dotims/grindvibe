@@ -20,7 +20,7 @@ namespace grindvibe_backend.Models
         [MaxLength(512)]
         public string? AvatarUrl { get; set; }
 
-        // Przydatne metadane
+        // Metadata
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? UpdatedAt { get; set; }
     }

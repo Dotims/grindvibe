@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.IdentityModel.Tokens.Jwt; 
 using System.Security.Claims;
+using System.Text.RegularExpressions;
 
 namespace grindvibe_backend.Controllers;
 
@@ -57,6 +58,7 @@ public class RoutinesController : ControllerBase
     // grindvibe-frontend/src/api/routines.ts
     public record CreateRoutineExerciseDto(
         string ExerciseId,
+        string? Name,
         int Order,
         int? TargetSets,
         int? TargetRepsMin,
@@ -81,29 +83,48 @@ public class RoutinesController : ControllerBase
     public record RoutineDto(
         int Id,
         string Name,
+        string Slug, // <--- NOWE POLE
         string? Description,
         DateTime CreatedAt,
         DateTime? UpdatedAt
     );
+
+    // Helper to generate URL-friendly slugs
+    private string GenerateSlug(string name)
+    {
+        string slug = name.ToLowerInvariant();
+        // Replace specific characters if needed (e.g. accents)
+        slug = slug.Replace("ą", "a").Replace("ć", "c").Replace("ę", "e").Replace("ł", "l").Replace("ń", "n").Replace("ó", "o").Replace("ś", "s").Replace("ź", "z").Replace("ż", "z");
+        // Remove invalid characters
+        slug = Regex.Replace(slug, @"[^a-z0-9\s-]", "");
+        // Replace spaces with hyphens
+        slug = Regex.Replace(slug, @"\s+", "-").Trim('-');
+        
+        // Append random suffix to ensure uniqueness
+        return $"{slug}-{Guid.NewGuid().ToString().Substring(0, 4)}";
+    }
 
     // POST /routines
     [HttpPost]
     [Authorize]
     public async Task<IActionResult> Create([FromBody] CreateRoutineDto dto)
     {
-        Console.WriteLine("--> Otrzymano żądanie POST /routines"); // Log wejścia
+        // Request log
+        Console.WriteLine("--> Received POST /routines"); 
 
         var userId = GetUserIdFromClaims(User);
         
         if (userId is null) 
         {
-            Console.WriteLine("--> BŁĄD: Nie udało się odczytać userId z tokena.");
-            return Unauthorized("Nieprawidłowy token - brak ID.");
+            // ERROR: Could not read userId from token
+            Console.WriteLine("--> ERROR: Could not read userId from token.");
+            return Unauthorized("Invalid token - missing ID.");
         }
 
-        Console.WriteLine($"--> Sukces: Użytkownik ID: {userId}");
+        // Success: User ID
+        Console.WriteLine($"--> Success: User ID: {userId}");
 
-        // Walidacja
+        // Validation
         if (string.IsNullOrWhiteSpace(dto.Name))
             return BadRequest(new { message = "Name is required" });
 
@@ -112,17 +133,19 @@ public class RoutinesController : ControllerBase
 
         var routine = new Routine
         {
-            Name = dto.Name.Trim(),
-            Description = dto.Description?.Trim(),
             UserId = userId.Value,
+            Name = dto.Name,
+            Description = dto.Description,
+            Slug = GenerateSlug(dto.Name),
+            CreatedAt = DateTime.UtcNow,
             Days = dto.Days.Select(d => new RoutineDay
             {
-                Name = d.Name.Trim(),
+                Name = d.Name,
                 Notes = d.Notes,
                 Exercises = d.Exercises.Select(e => new RoutineExercise
                 {
                     ExerciseId = e.ExerciseId,
-                    Name = e.ExerciseId, // Tymczasowo ID jako nazwa, jeśli front nie wysyła nazwy
+                    Name = e.ExerciseId, // Temporary: use ID as name if not provided
                     Order = e.Order,
                     TargetSets = e.TargetSets,
                     TargetRepsMin = e.TargetRepsMin,
@@ -142,14 +165,16 @@ public class RoutinesController : ControllerBase
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"--> BŁĄD BAZY DANYCH: {ex.Message}");
-            // Jeśli tu wejdzie, to znaczy że migracja nie poszła
-            return StatusCode(500, new { message = "Błąd zapisu do bazy", detail = ex.Message });
+            // Database save failed
+            Console.WriteLine($"--> DATABASE ERROR: {ex.Message}");
+            return StatusCode(500, new { message = "Database save error", detail = ex.Message });
         }
 
+        // Zwracamy DTO z nowym slugiem
         var outDto = new RoutineDto(
             routine.Id,
             routine.Name,
+            routine.Slug, 
             routine.Description,
             routine.CreatedAt,
             routine.UpdatedAt
@@ -158,7 +183,7 @@ public class RoutinesController : ControllerBase
         return CreatedAtAction(nameof(GetById), new { id = routine.Id }, outDto);
     }
 
-    // GET /routines – lista moich
+    // GET /routines - list mine
     [HttpGet]
     [Authorize]
     public async Task<ActionResult<List<RoutineDto>>> ListMine()
@@ -172,6 +197,7 @@ public class RoutinesController : ControllerBase
             .Select(r => new RoutineDto(
                 r.Id,
                 r.Name,
+                r.Slug, // Include slug in list
                 r.Description,
                 r.CreatedAt,
                 r.UpdatedAt
@@ -189,7 +215,7 @@ public class RoutinesController : ControllerBase
         var userId = GetUserIdFromClaims(User);
         if (userId is null) return Unauthorized();
 
-        // 1. Pobierz dane z bazy z INCLUDE (ważne!)
+        // 1. Fetch data with INCLUDE (important!)
         var r = await _db.Routines
             .Include(x => x.Days)
             .ThenInclude(d => d.Exercises)
@@ -197,14 +223,14 @@ public class RoutinesController : ControllerBase
 
         if (r is null) return NotFound();
 
-        // 2. Zmapuj dane do DTO (To tutaj brakowało 'Days'!)
+        // 2. Map to DTO
         var dto = new
         {
             r.Id,
             r.Name,
             r.Description,
             r.CreatedAt,
-            // WAŻNE: Musisz przepisać strukturę Days i Exercises
+            // Map Days and Exercises structure
             Days = r.Days.Select(d => new
             {
                 d.Id,
@@ -216,12 +242,119 @@ public class RoutinesController : ControllerBase
                     e.ExerciseId,
                     e.Name,
                     e.Order,
-                    e.Notes,       // Tu są zapisane serie/powtórzenia
+                    e.Notes,       // Sets/reps stored here
                     e.RestSeconds
                 }).ToList()
             }).ToList()
         };
 
         return Ok(dto);
+    }
+
+    [HttpDelete("{id:int}")]
+    [Authorize]
+    public async Task<IActionResult> Delete(int id)
+    {
+        var userId = GetUserIdFromClaims(User);
+        if (userId is null) return Unauthorized();
+
+        var routine = await _db.Routines
+            .FirstOrDefaultAsync(r => r.Id == id && r.UserId == userId.Value);
+
+        if (routine is null) return NotFound();
+
+        _db.Routines.Remove(routine);
+        await _db.SaveChangesAsync();
+
+        return NoContent();
+    }
+
+    [HttpGet("by-slug/{slug}")]
+    [Authorize]
+    public async Task<IActionResult> GetBySlug(string slug)
+    {
+        var userId = GetUserIdFromClaims(User);
+        if (userId is null) return Unauthorized();
+
+        var r = await _db.Routines
+            .Include(x => x.Days)
+            .ThenInclude(d => d.Exercises)
+            .FirstOrDefaultAsync(x => x.Slug == slug && x.UserId == userId.Value);
+
+        if (r is null) return NotFound();
+
+        var dto = new
+        {
+            r.Id,
+            r.Name,
+            r.Slug,
+            r.Description,
+            r.CreatedAt,
+            Days = r.Days.Select(d => new
+            {
+                d.Id,
+                d.Name,
+                d.Notes,
+                Exercises = d.Exercises.OrderBy(e => e.Order).Select(e => new
+                {
+                    e.Id,
+                    e.ExerciseId,
+                    e.Name,
+                    e.Order,
+                    e.Notes,
+                    e.RestSeconds
+                }).ToList()
+            }).ToList()
+        };
+
+        return Ok(dto);
+    }
+
+    // PUT /routines/{id}
+    [HttpPut("{id:int}")]
+    [Authorize]
+    public async Task<IActionResult> Update(int id, [FromBody] CreateRoutineDto dto)
+    {
+        var userId = GetUserIdFromClaims(User);
+        if (userId is null) return Unauthorized();
+
+        // 1. Fetch existing routine with children
+        var routine = await _db.Routines
+            .Include(r => r.Days)
+            .ThenInclude(d => d.Exercises)
+            .FirstOrDefaultAsync(r => r.Id == id && r.UserId == userId.Value);
+
+        if (routine is null) return NotFound();
+
+        // 2. Update basic fields
+        routine.Name = dto.Name.Trim();
+        routine.Description = dto.Description?.Trim();
+        routine.UpdatedAt = DateTime.UtcNow;
+
+        // 3. Replace children entities (Days & Exercises)
+        // This strategy avoids complex synchronization logic by removing old entries and adding new ones.
+        _db.RoutineDays.RemoveRange(routine.Days);
+        
+        routine.Days = dto.Days.Select(d => new RoutineDay
+        {
+            Name = d.Name.Trim(),
+            Notes = d.Notes,
+            Exercises = d.Exercises.Select(e => new RoutineExercise
+            {
+                ExerciseId = e.ExerciseId,
+                Name = e.ExerciseId, // Or fetch name from exercise DB if available
+                Order = e.Order,
+                TargetSets = e.TargetSets,
+                TargetRepsMin = e.TargetRepsMin,
+                TargetRepsMax = e.TargetRepsMax,
+                TargetRpe = e.TargetRpe,
+                RestSeconds = e.RestSeconds,
+                Notes = e.Notes
+            }).ToList()
+        }).ToList();
+
+        await _db.SaveChangesAsync();
+
+        return NoContent();
     }
 }

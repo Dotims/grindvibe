@@ -1,5 +1,4 @@
-import { createSlice } from '@reduxjs/toolkit';
-import type { PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 
 export type DraftExercise = {
   id: string;            // local id in UI
@@ -34,6 +33,27 @@ const initialState: RoutineDraftState = {
     { id: crypto.randomUUID(), name: "Day 1", notes: "", exercises: [] },
   ],
 };
+
+// Interface for data coming from the API (to fix "Unexpected any")
+interface ApiRoutineData {
+  name: string;
+  description?: string | null;
+  days: Array<{
+    name: string;
+    notes?: string | null;
+    exercises: Array<{
+      exerciseId: string;
+      name: string;
+      order: number;
+      targetSets?: number | null;
+      targetRepsMin?: number | null;
+      targetRepsMax?: number | null;
+      targetRpe?: number | null;
+      restSeconds?: number | null;
+      notes?: string | null;
+    }>;
+  }>;
+}
 
 const routinesSlice = createSlice({
   name: "routinesDraft",
@@ -86,13 +106,39 @@ const routinesSlice = createSlice({
       state.description = action.payload.description;
       state.days = action.payload.days;
     },
+    // Load existing routine data into the draft state for editing
+    loadDraftFromApi(state, action: PayloadAction<ApiRoutineData>) {
+      const apiData = action.payload;
+      state.name = apiData.name;
+      state.description = apiData.description;
+      
+      // Map API structure to Draft structure (generating temp IDs for UI)
+      state.days = apiData.days.map((d) => ({
+        id: crypto.randomUUID(), 
+        name: d.name,
+        notes: d.notes,
+        exercises: d.exercises.map((e) => ({
+          id: crypto.randomUUID(),
+          exerciseId: e.exerciseId,
+          name: e.name,
+          order: e.order,
+          targetSets: e.targetSets,
+          targetRepsMin: e.targetRepsMin,
+          targetRepsMax: e.targetRepsMax,
+          targetRpe: e.targetRpe,
+          restSeconds: e.restSeconds,
+          notes: e.notes
+        }))
+      }));
+    },
   }
 });
 
 export const {
   resetDraft, setName, setDescription,
   addDay, removeDay, renameDay, setDraft,
-  addExerciseToDay, updateExercise, removeExercise, reorderExercise
+  addExerciseToDay, updateExercise, removeExercise, reorderExercise,
+  loadDraftFromApi
 } = routinesSlice.actions;
 
 export default routinesSlice.reducer;

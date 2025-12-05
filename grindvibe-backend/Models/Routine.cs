@@ -9,6 +9,10 @@ public class Routine
     [Required, MaxLength(200)]
     public string Name { get; set; } = "";
 
+    // URL-friendly identifier
+    [MaxLength(250)]
+    public string Slug { get; set; } = ""; 
+
     [MaxLength(1000)]
     public string? Description { get; set; }
 

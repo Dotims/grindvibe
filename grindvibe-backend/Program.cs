@@ -91,11 +91,17 @@ builder.Services.AddAuthentication(x =>
         },
         OnMessageReceived = context =>
         {
+            // FIX: Ignore OPTIONS requests (CORS preflight) which never have tokens
+            if (context.Request.Method == "OPTIONS")
+            {
+                return Task.CompletedTask;
+            }
+
             var token = context.Request.Headers["Authorization"].FirstOrDefault()?.Replace("Bearer ", "");
             if (string.IsNullOrEmpty(token))
             {
                 Console.ForegroundColor = ConsoleColor.Yellow;
-                Console.WriteLine($"[AUTH-WARN] Żądanie do {context.Request.Path} bez tokena!");
+                Console.WriteLine($"[AUTH-WARN] Request to {context.Request.Path} missing token!");
                 Console.ResetColor();
             }
             return Task.CompletedTask;

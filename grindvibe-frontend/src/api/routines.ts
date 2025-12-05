@@ -8,6 +8,7 @@ export type RoutineCreateDto = {
     notes?: string | null;
     exercises: Array<{
       exerciseId: string;
+      name?: string;
       order: number;
       targetSets?: number | null;
       targetRepsMin?: number | null;
@@ -22,10 +23,24 @@ export type RoutineCreateDto = {
 export type RoutineDto = {
   id: string;
   name: string;
+  slug?: string; // Optional for backward compatibility
   description?: string | null;
   createdAt: string;
   updatedAt: string;
 };
+
+// /routines/:id
+export async function updateRoutine(
+  id: string | number,
+  payload: RoutineCreateDto,
+  signal?: AbortSignal
+): Promise<void> {
+  return api<void>(`/routines/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+    signal,
+  });
+}
 
 // POST /routines
 export async function createRoutine(
@@ -36,16 +51,48 @@ export async function createRoutine(
     method: "POST",
     body: JSON.stringify(payload),
     signal,
-    // headers „Content-Type” + „Authorization” są dodawane w client.ts
+    // Headers 'Content-Type' + 'Authorization' are added in client.ts
   });
 }
 
-// GET /routines (lista moich)
+// GET /routines (list mine)
 export async function listMyRoutines(signal?: AbortSignal): Promise<RoutineDto[]> {
   return api<RoutineDto[]>("/routines", { method: "GET", signal });
 }
 
-// (opcjonalnie) GET /routines/:id – przyda się do edytora
+// (Optional) GET /routines/:id - useful for editor
 export async function getRoutine(id: string, signal?: AbortSignal) {
   return api(`/routines/${id}`, { method: "GET", signal });
+}
+
+// GET /routines/by-slug/:slug
+export async function getRoutineBySlug(slug: string, signal?: AbortSignal) {
+  return api(`/routines/by-slug/${slug}`, { method: "GET", signal });
+}
+
+// DELETE /routines/:id
+export async function deleteRoutine(id: string): Promise<void> {
+  return api<void>(`/routines/${id}`, {
+    method: "DELETE",
+  });
+}
+
+// POST /workouts
+export type FinishWorkoutDto = {
+  routineId: number | null;
+  name: string;
+  startedAt: string;
+  endedAt: string;
+  sets: Array<{
+    exerciseId: string;
+    exerciseName: string;
+    setNumber: number;
+    weight: number | null;
+    reps: number | null;
+    rpe: number | null;
+  }>;
+};
+
+export async function finishWorkout(payload: FinishWorkoutDto) {
+  return api("/workouts", { method: "POST", body: JSON.stringify(payload) });
 }

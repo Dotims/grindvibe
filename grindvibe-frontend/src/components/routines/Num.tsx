@@ -11,13 +11,23 @@ type Props = {
 export default function Num({ label, value, onChange, placeholder }: Props) {
   const handle = (e: React.ChangeEvent<HTMLInputElement>) => {
     const raw = e.target.value;
-    onChange(raw === "" ? null : Number(raw));
+    if (raw === "") {
+      onChange(null);
+      return;
+    }
+    const val = Number(raw);
+    if (val < 0) return; 
+    onChange(val);
   };
   return (
     <div>
       <label className="text-xs block mb-1">{label}</label>
       <Input
         type="number"
+        min={0}
+        onKeyDown={(e) => {
+          if (e.key === "-" || e.key === "e") e.preventDefault();
+        }}
         value={value ?? ""}
         onChange={handle}
         placeholder={placeholder}
