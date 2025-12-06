@@ -7,7 +7,7 @@ export type ActiveSet = {
   targetRepsMin?: number | null;
   targetRepsMax?: number | null;
   targetRpe?: number | null;
-  restSeconds?: number | null; // Rest time specific to this set
+  restSeconds?: number | null;
   
   actualWeight: string;
   actualReps: string;
@@ -19,6 +19,7 @@ export type ActiveExercise = {
   id: string;
   exerciseId: string;
   name: string;
+  imageUrl?: string | null; // <--- DODANO: Pole na obrazek
   sets: ActiveSet[];
 };
 
@@ -28,7 +29,7 @@ export type WorkoutState = {
   routineName: string;
   startTime: number | null;
   exercises: ActiveExercise[];
-  restEndTime: number | null; // Timestamp when the current rest ends
+  restEndTime: number | null;
 };
 
 const initialState: WorkoutState = {
@@ -59,6 +60,7 @@ const workoutSlice = createSlice({
       const { exerciseIndex, setIndex, field, value } = action.payload;
       const ex = state.exercises[exerciseIndex];
       if (ex && ex.sets[setIndex]) {
+        if (parseFloat(value) < 0) return; 
         ex.sets[setIndex][field] = value;
       }
     },
@@ -70,13 +72,9 @@ const workoutSlice = createSlice({
       const set = ex.sets[setIndex];
       set.completed = !set.completed;
 
-      // Logic: If marked as complete, start rest timer
       if (set.completed) {
-        const restDuration = set.restSeconds || 180; // Default 3 mins if not set
+        const restDuration = set.restSeconds || 180;
         state.restEndTime = Date.now() + (restDuration * 1000);
-      } else {
-        // If unchecked, maybe cancel rest? Let's keep it simple and leave it running or clear it.
-        // For now, let's not clear it automatically to avoid accidental clicks stopping the timer.
       }
     },
     skipRest(state) {

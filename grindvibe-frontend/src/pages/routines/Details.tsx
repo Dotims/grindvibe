@@ -97,6 +97,7 @@ export default function RoutineDetails() {
           id: crypto.randomUUID(),
           exerciseId: ex.exerciseId,
           name: ex.name,
+          imageUrl: meta.thumb,
           sets: meta.sets.map((s, idx) => ({
             id: crypto.randomUUID(),
             setNumber: idx + 1,
