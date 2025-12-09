@@ -6,11 +6,10 @@ import { Link } from "react-router-dom";
 import { Button } from "../../components/ui/button";
 import { listMyRoutines, deleteRoutine, type RoutineDto } from "../../api/routines";
 import { Notice } from "../../components/ui/Notice";
-import { useAppSelector } from "../../store/hooks"; 
+import { useAuth } from "../../auth/useAuth";
 
 export default function RoutinesPage() {
-  const { token } = useAppSelector(state => state.auth); 
-
+  const { token } = useAuth();
   const [routines, setRoutines] = useState<RoutineDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -20,16 +19,16 @@ export default function RoutinesPage() {
   const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
-    const lsToken = localStorage.getItem("token") || localStorage.getItem("gv_token");
-    if (lsToken && !token) {
-        return; 
-    }
+    if (!token) return; 
 
     let mounted = true;
     async function load() {
       try {
         setLoading(true);
         const data = await listMyRoutines();
+        
+        console.log("Routines loaded from API:", data);
+
         if (mounted) setRoutines(data);
       } catch (err) {
         console.error(err);
@@ -40,7 +39,7 @@ export default function RoutinesPage() {
     }
     load();
     return () => { mounted = false; };
-  }, [token]); // <--- DODAJ TOKEN DO ZALEŻNOŚCI
+  }, [token]);
 
   const handleDeleteConfirm = async () => {
     if (!routineToDelete) return;
