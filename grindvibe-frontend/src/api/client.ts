@@ -1,94 +1,74 @@
-const API_URL = import.meta.env.VITE_API_URL ?? "https://localhost:7093";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 export type ApiError = {
   status: number;
   message: string;
   detail?: string;
-  signal?: AbortSignal;
 };
 
-function getString(obj: unknown, key: string): string | undefined {
-  if (obj && typeof obj === "object" && key in (obj as Record<string, unknown>)) {
-    const v = (obj as Record<string, unknown>)[key];
-    return typeof v === "string" ? v : undefined;
-  }
-  return undefined;
-}
-
 export function isApiError(e: unknown): e is ApiError {
-  if (e && typeof e === "object") {
-    const o = e as Record<string, unknown>;
-    return typeof o.status === "number" && typeof o.message === "string";
-  }
-  return false;
+  return typeof e === "object" && e !== null && "status" in e;
 }
 
-export default async function api(path: string, options?: RequestInit): Promise<void>;
-export default async function api<T>(path: string, options?: RequestInit): Promise<T>;
+async function api<T>(path: string, config: RequestInit = {}): Promise<T> {
+  // 1. KLUCZOWE: Sprawdzamy obie możliwe nazwy tokena
+  const token = localStorage.getItem("token") || localStorage.getItem("gv_token");
 
-export default async function api<T>(
-  path: string,
-  options: RequestInit = {}
-): Promise<T | void> {
-  const base = (API_URL || "").replace(/\/+$/, "");
-  const pathWithSlash = path.startsWith("/") ? path : `/${path}`;
-  const url = `${base}${pathWithSlash}`;
-
-  // FIX: Check 'gv_token' first, then fallback to 'token'
-  const token = localStorage.getItem("gv_token") || localStorage.getItem("token");
-
-  // DEBUG: Log token status to console
-  if (!token) {
-    console.warn(`[API] Sending request to ${path} WITHOUT TOKEN. LocalStorage keys:`, Object.keys(localStorage));
-  }
-
-  const baseHeaders: Record<string, string> = {
-    "Content-Type": "application/json",
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
-
-  const headers = new Headers(baseHeaders);
-  if (options.headers) {
-    const extra = new Headers(options.headers as HeadersInit);
-    extra.forEach((v, k) => headers.set(k, v));
-  }
-
+  const headers = new Headers(config.headers);
+  
+  // 2. Jeśli token istnieje, dodajemy go do nagłówka
   if (token) {
-      console.log(`[API] Wysyłam do ${path} z tokenem: ${token.substring(0, 10)}...`);
-  } else {
-      console.warn(`[API] Wysyłam do ${path} BEZ TOKENA!`);
+    headers.set("Authorization", `Bearer ${token}`);
+  }
+  
+  if (!headers.has("Content-Type") && !(config.body instanceof FormData)) {
+    headers.set("Content-Type", "application/json");
   }
 
-  const res = await fetch(url, { ...options, headers });
+  const cleanBase = API_URL.replace(/\/+$/, "");
+  const cleanPath = path.replace(/^\/+/, "");
+  const url = `${cleanBase}/${cleanPath}`;
 
-  if (!res.ok) {
-    let data: Record<string, unknown> | null = null;
+  const response = await fetch(url, {
+    ...config,
+    headers,
+  });
+
+  if (!response.ok) {
+    let errorMessage = response.statusText;
+    let errorDetail = "";
+    
     try {
-      data = (await res.json()) as Record<string, unknown>;
-    } catch {
-      data = null;
+      const text = await response.text();
+      if (text) {
+        try {
+            const json = JSON.parse(text);
+            errorMessage = json.message || errorMessage;
+            errorDetail = json.detail || "";
+        } catch {
+            errorMessage = text;
+        }
+      }
+    } catch (e) { /* ignore */ }
+
+    if (response.status === 401) {
+        console.warn("[API] 401 Unauthorized - brak dostępu lub token wygasł.");
     }
 
-    const err: ApiError = {
-      status: res.status,
-      message: getString(data, "message") ?? res.statusText ?? "Wystąpił błąd",
-      detail: getString(data, "detail"),
-    };
-    throw err;
+    throw {
+      status: response.status,
+      message: errorMessage,
+      detail: errorDetail,
+    } as ApiError;
   }
 
-  const isNoContent = res.status === 204;
-  const contentLength = res.headers.get("content-length");
-  const hasBody =
-    !isNoContent &&
-    contentLength !== "0" &&
-    !!res.headers.get("content-type")?.includes("application/json");
-
-  if (!hasBody) {
-    return;
+  if (response.status === 204) {
+    return null as unknown as T;
   }
 
-  return (await res.json()) as T;
+  return response.json();
 }
+
+export default api;
 
 

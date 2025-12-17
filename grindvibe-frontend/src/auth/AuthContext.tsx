@@ -54,15 +54,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Sync token - storage
   useEffect(() => {
+    if (loading) return; 
     if (token) localStorage.setItem(STORAGE_KEYS.token, token);
     else localStorage.removeItem(STORAGE_KEYS.token);
-  }, [token]);
+  }, [token, loading]); 
 
-  // Sync user - storage
   useEffect(() => {
+    if (loading) return; 
     if (user) localStorage.setItem(STORAGE_KEYS.user, JSON.stringify(user));
     else localStorage.removeItem(STORAGE_KEYS.user);
-  }, [user]);
+  }, [user, loading]); 
 
   // standard login
   const login = useCallback(async ({ email, password }: LoginInput) => {

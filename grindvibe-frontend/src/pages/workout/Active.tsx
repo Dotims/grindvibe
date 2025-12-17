@@ -6,7 +6,7 @@ import { finishWorkout } from "../../api/routines";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent } from "../../components/ui/card";
 import { Input } from "../../components/ui/input";
-import { Check, Clock, X, Plus, Minus, SkipForward } from "lucide-react";
+import { Check, Clock, X, Plus, Minus, SkipForward, Dumbbell } from "lucide-react"; // Dodano Dumbbell
 import { ACCENT } from "../../lib/routinesMeta";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -101,6 +101,13 @@ export default function ActiveWorkoutPage() {
     return `${m}:${s.toString().padStart(2, '0')}`;
   };
 
+  // Funkcja blokująca wpisywanie minusa i 'e' (notacja wykładnicza)
+  const preventMinus = (e: React.KeyboardEvent) => {
+    if (e.key === '-' || e.key === 'e') {
+      e.preventDefault();
+    }
+  };
+
   return (
     <main className="mx-auto w-full max-w-3xl px-4 py-6 pb-32 bg-[var(--gv-bg)] text-[var(--gv-text)] relative min-h-screen">
       
@@ -126,9 +133,25 @@ export default function ActiveWorkoutPage() {
       <div className="space-y-6">
         {workout.exercises.map((ex, exIdx) => (
           <Card key={ex.id} className="overflow-hidden border border-border/50 shadow-sm">
-            <div className="bg-muted/30 px-4 py-3 border-b border-border/50 flex justify-between items-center">
-              <h3 className="font-semibold text-base">{ex.name}</h3>
+            
+            {/* Header z obrazkiem */}
+            <div className="bg-muted/30 px-4 py-3 border-b border-border/50 flex items-center gap-4">
+              {/* Kontener na obrazek */}
+              <div className="h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-background border border-border/50 grid place-items-center">
+                {ex.imageUrl ? (
+                  <img 
+                    src={ex.imageUrl} 
+                    alt={ex.name} 
+                    className="h-full w-full object-contain" 
+                  />
+                ) : (
+                  <Dumbbell className="h-6 w-6 opacity-20" />
+                )}
+              </div>
+              
+              <h3 className="font-semibold text-base leading-tight">{ex.name}</h3>
             </div>
+
             <CardContent className="p-0">
               {/* Table Header */}
               <div className="grid grid-cols-[30px_1fr_1fr_1fr_40px] gap-2 px-4 py-2 text-[10px] uppercase tracking-wider text-muted-foreground font-bold text-center bg-muted/10">
@@ -155,6 +178,8 @@ export default function ActiveWorkoutPage() {
                     {/* Weight Input */}
                     <Input 
                       type="number" 
+                      min="0"
+                      onKeyDown={preventMinus}
                       placeholder={set.targetWeight ? `${set.targetWeight}` : "-"}
                       className={`h-9 text-center text-sm font-medium ${isDone ? "border-green-500/30 text-green-600 bg-green-500/5" : ""}`}
                       value={set.actualWeight}
@@ -165,6 +190,8 @@ export default function ActiveWorkoutPage() {
                     {/* Reps Input */}
                     <Input 
                       type="number" 
+                      min="0"
+                      onKeyDown={preventMinus}
                       placeholder={set.targetRepsMin ? `${set.targetRepsMin}` : "-"}
                       className={`h-9 text-center text-sm font-medium ${isDone ? "border-green-500/30 text-green-600 bg-green-500/5" : ""}`}
                       value={set.actualReps}
@@ -175,6 +202,9 @@ export default function ActiveWorkoutPage() {
                     {/* RPE Input */}
                     <Input 
                       type="number" 
+                      min="0"
+                      max="10"
+                      onKeyDown={preventMinus}
                       placeholder="-"
                       className={`h-9 text-center text-sm font-medium ${isDone ? "border-green-500/30 text-green-600 bg-green-500/5" : ""}`}
                       value={set.actualRpe}

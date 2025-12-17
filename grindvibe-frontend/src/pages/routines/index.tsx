@@ -6,25 +6,27 @@ import { Link } from "react-router-dom";
 import { Button } from "../../components/ui/button";
 import { listMyRoutines, deleteRoutine, type RoutineDto } from "../../api/routines";
 import { Notice } from "../../components/ui/Notice";
+import { useAuth } from "../../auth/useAuth";
 
 export default function RoutinesPage() {
+  const { token } = useAuth();
   const [routines, setRoutines] = useState<RoutineDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // --- STANY DO USUWANIA ---
   const [isDeleteMode, setIsDeleteMode] = useState(false);
   const [routineToDelete, setRoutineToDelete] = useState<RoutineDto | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
+    if (!token) return; 
+
     let mounted = true;
     async function load() {
       try {
         setLoading(true);
         const data = await listMyRoutines();
         
-        // DEBUG: Check what data we received
         console.log("Routines loaded from API:", data);
 
         if (mounted) setRoutines(data);
@@ -37,19 +39,15 @@ export default function RoutinesPage() {
     }
     load();
     return () => { mounted = false; };
-  }, []);
+  }, [token]);
 
-  // Funkcja usuwająca
   const handleDeleteConfirm = async () => {
     if (!routineToDelete) return;
     setIsDeleting(true);
     try {
       await deleteRoutine(routineToDelete.id);
-      // Usuń z lokalnego stanu bez odświeżania
       setRoutines((prev) => prev.filter((r) => r.id !== routineToDelete.id));
       setRoutineToDelete(null);
-      
-      // Jeśli usunęliśmy ostatnią, wyjdź z trybu usuwania
       if (routines.length <= 1) setIsDeleteMode(false);
     } catch (err) {
       console.error("Delete failed", err);
@@ -80,16 +78,15 @@ export default function RoutinesPage() {
     },
   ];
 
-  // Konfiguracja animacji "trzęsienia"
   const shakeVariants = {
     idle: { rotate: 0 },
     shaking: {
-      rotate: [0, -0.5, 0.5, -0.5, 0], // Mniejszy kąt (delikatniej)
+      rotate: [0, -0.5, 0.5, -0.5, 0], 
       transition: {
-        duration: 0.4, // Wolniej (było 0.25)
+        duration: 0.4, 
         repeat: Infinity,
         repeatType: "reverse" as const,
-        ease: "easeInOut", // Płynniej
+        ease: "easeInOut", 
       },
     },
   };
@@ -168,14 +165,8 @@ export default function RoutinesPage() {
               variants={shakeVariants}
               animate={isDeleteMode ? "shaking" : "idle"}
               style={{ transformOrigin: "center center" }}
-              // Dodajemy losowe opóźnienie, żeby nie trzęsły się idealnie równo (wygląda naturalniej)
               custom={idx} 
             >
-              {/* 
-                  LOGIKA: 
-                  Jeśli tryb usuwania -> Div z onClick (Otwórz Modal)
-                  Jeśli tryb normalny -> Link (Idź do szczegółów)
-              */}
               {isDeleteMode ? (
                 <div 
                   onClick={() => setRoutineToDelete(r)}
@@ -199,7 +190,6 @@ export default function RoutinesPage() {
         </div>
       )}
 
-      {/* --- MODAL POTWIERDZENIA USUWANIA --- */}
       <AnimatePresence>
         {routineToDelete && (
           <div 
