@@ -1,305 +1,179 @@
 import { useEffect, useState } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
-import { ChevronLeft, Calendar, Dumbbell, Clock, X, Edit, Play } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useParams, Link } from "react-router-dom";
+import { ChevronLeft } from "lucide-react";
 
 import { Button } from "../../components/ui/button";
-import { Card, CardContent } from "../../components/ui/card";
 import { Notice } from "../../components/ui/Notice";
-import { getRoutineBySlug, getRoutine } from "../../api/routines";
-import { startWorkout, type ActiveExercise } from "../../features/workout/workoutSlice";
-import { useAppDispatch, useAppSelector } from "../../store/hooks"; 
-import { parseMeta, ACCENT } from "../../lib/routinesMeta";
+import { getExerciseById, type ExerciseDto } from "../../api/exercises";
+import { parseExerciseSteps } from "../../lib/utils";
 
-// Type definition for the API response
-type RoutineDetailsDto = {
-  id: number;
-  name: string;
-  description?: string;
-  createdAt: string;
-  days: Array<{
-    id: number;
-    name: string;
-    notes?: string;
-    exercises: Array<{
-      id: number;
-      exerciseId: string;
-      name: string;
-      order: number;
-      notes?: string;
-      restSeconds?: number;
-    }>;
-  }>;
-};
+export default function ExerciseDetail() {
+  const { id } = useParams<{ id: string }>();
 
-export default function RoutineDetails() {
-  const dispatch = useAppDispatch();
-  const navigate = useNavigate();
-  const { id } = useParams<{ id: string }>(); 
-  
-  const { token } = useAppSelector(state => state.auth);
-
-  const [routine, setRoutine] = useState<RoutineDetailsDto | null>(null);
+  const [exercise, setExercise] = useState<ExerciseDto | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // State for the image preview modal
-  const [previewImage, setPreviewImage] = useState<string | null>(null);
-
   useEffect(() => {
     if (!id) {
-        setLoading(false);
-        return;
-    }
-
-    // if we refresh page
-    const lsToken = localStorage.getItem("token") || localStorage.getItem("gv_token");
-    
-    if (lsToken && !token) {
-        console.log("[RoutineDetails] Czekam na załadowanie tokena do Reduxa...");
-        return;
+      setLoading(false);
+      return;
     }
 
     let mounted = true;
-    console.log("[RoutineDetails] Pobieram dane dla:", id);
 
-    async function load() {
+    (async () => {
       try {
         setLoading(true);
-        
-        let data;
-        const isNumericId = /^\d+$/.test(id!);
-        
-        if (isNumericId) {
-             data = await getRoutine(id!) as unknown as RoutineDetailsDto;
-        } else {
-             data = await getRoutineBySlug(id!) as unknown as RoutineDetailsDto;
-        }
-
+        const data = await getExerciseById(id);
         if (mounted) {
-            setRoutine(data);
-            setError(null);
+          setExercise(data);
+          setError(null);
         }
       } catch (err) {
-        console.error("[RoutineDetails] Error loading routine:", err);
-        if (mounted) setError("Nie udało się załadować rutyny. Sprawdź połączenie lub odśwież stronę.");
+        console.error("[ExerciseDetail] Error loading exercise:", err);
+        if (mounted) setError("Nie udało się załadować ćwiczenia.");
       } finally {
         if (mounted) setLoading(false);
       }
-    }
-    
-    load();
-    
+    })();
+
     return () => { mounted = false; };
-  }, [id, token]); 
+  }, [id]);
 
-  const handleStartWorkout = () => {
-    if (!routine) return;
+  if (loading) {
+    return (
+      <div className="p-10 text-center text-muted-foreground">Ładowanie…</div>
+    );
+  }
 
-    const activeExercises: ActiveExercise[] = [];
-    
-    routine.days.forEach(day => {
-      day.exercises.forEach(ex => {
-        const meta = parseMeta(ex.notes);
-        
-        activeExercises.push({
-          id: crypto.randomUUID(),
-          exerciseId: ex.exerciseId,
-          name: ex.name,
-          imageUrl: meta.thumb, 
-          sets: meta.sets.map((s, idx) => ({
-            id: crypto.randomUUID(),
-            setNumber: idx + 1,
-            targetWeight: s.weight,
-            targetRepsMin: s.repsMin,
-            targetRepsMax: s.repsMax,
-            targetRpe: s.rpe,
-            restSeconds: s.restSeconds,
-            actualWeight: s.weight ? String(s.weight) : "",
-            actualReps: "",
-            actualRpe: "",
-            completed: false
-          }))
-        });
-      });
-    });
-
-    dispatch(startWorkout({
-      routineId: routine.id,
-      routineName: routine.name,
-      exercises: activeExercises
-    }));
-
-    navigate('/workout/active');
-  };
-
-  if (loading) return <div className="p-10 text-center text-muted-foreground">Ładowanie...</div>;
-
-  if (error || !routine) {
+  if (error || !exercise) {
     return (
       <div className="mx-auto max-w-4xl p-6">
-        <Notice kind="error">{error || "Routine not found."}</Notice>
+        <Notice kind="error">{error || "Nie znaleziono ćwiczenia."}</Notice>
         <Button variant="link" asChild className="mt-4 pl-0">
-          <Link to="/routines">← Wróć do listy</Link>
+          <Link to="/exercises">← Wróć do listy</Link>
         </Button>
       </div>
     );
   }
 
+  const steps = parseExerciseSteps(exercise.description ?? null);
+  const primary = exercise.primaryMuscles ?? [];
+  const secondary = exercise.secondaryMuscles ?? [];
+  const equipment = exercise.equipment ?? [];
+  const instructions = exercise.instructions ?? [];
+  const bodyPart = exercise.bodyPart ?? null;
+
+  const chipPrimary =
+    "inline-flex items-center rounded-full bg-secondary text-secondary-foreground px-2.5 py-0.5 text-[11px] font-medium";
+  const chipSecondary =
+    "inline-flex items-center rounded-full bg-transparent px-2.5 py-0.5 text-[11px] text-foreground/70 ring-1 ring-border";
+
   return (
     <main className="mx-auto w-full max-w-5xl px-4 py-10 bg-[var(--gv-bg)] text-[var(--gv-text)]">
-      {/* Header */}
-      <div className="mb-8">
-        <Link to="/routines" className="mb-4 inline-flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors">
-          <ChevronLeft className="mr-1 h-4 w-4" />
-          Wróć do listy
-        </Link>
-        
-        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">{routine.name}</h1>
-            {routine.description && (
-              <p className="mt-2 text-lg text-muted-foreground">{routine.description}</p>
-            )}
-          </div>
+      {/* Back link */}
+      <Link
+        to="/exercises"
+        className="mb-6 inline-flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors"
+      >
+        <ChevronLeft className="mr-1 h-4 w-4" />
+        Wróć do listy
+      </Link>
 
-          <div className="flex gap-2">
-            <Button variant="outline" className="rounded-full gap-2" asChild>
-              <Link to={`/routines/${routine.slug || routine.id}/edit`}>
-                <Edit className="h-4 w-4" /> Edytuj
-              </Link>
-            </Button>
+      <h1 className="text-3xl font-bold tracking-tight mb-4">{exercise.name}</h1>
 
-            <Button className="rounded-full gap-2" style={{ backgroundColor: ACCENT }} onClick={handleStartWorkout}>
-              <Play className="h-4 w-4 fill-current" /> Rozpocznij trening
-            </Button>
-          </div>
+      {/* Chips */}
+      <div className="mb-6 flex flex-wrap gap-2">
+        {bodyPart && <span className={chipPrimary}>{bodyPart}</span>}
+        {equipment.map((e) => (
+          <span key={e} className={chipSecondary}>{e}</span>
+        ))}
+        {exercise.difficulty && (
+          <span className="inline-flex items-center rounded-full bg-muted px-3 py-1 text-xs font-medium">
+            Poziom: {exercise.difficulty}
+          </span>
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
+        {/* Media */}
+        <div className="relative aspect-square rounded-2xl overflow-hidden bg-muted/40 border border-border/50">
+          {exercise.videoUrl ? (
+            <video
+              src={exercise.videoUrl}
+              className="absolute inset-0 h-full w-full object-contain bg-[var(--gv-bg)]"
+              autoPlay
+              muted
+              loop
+              playsInline
+            />
+          ) : exercise.imageUrl ? (
+            <img
+              src={exercise.imageUrl}
+              alt={exercise.name}
+              className="absolute inset-0 h-full w-full object-contain bg-[var(--gv-bg)]"
+              loading="lazy"
+            />
+          ) : (
+            <div className="absolute inset-0 grid place-items-center text-sm text-muted-foreground">
+              Brak podglądu
+            </div>
+          )}
+        </div>
+
+        {/* Info */}
+        <div className="space-y-6">
+          {/* Description / Steps */}
+          {steps.length > 0 ? (
+            <div>
+              <h2 className="text-lg font-semibold mb-2">Opis</h2>
+              <ol className="ml-5 list-decimal space-y-1 text-sm text-muted-foreground/90">
+                {steps.map((s, i) => (
+                  <li key={i}>{s}</li>
+                ))}
+              </ol>
+            </div>
+          ) : (
+            exercise.description && (
+              <div>
+                <h2 className="text-lg font-semibold mb-2">Opis</h2>
+                <p className="text-sm text-muted-foreground/90">{exercise.description}</p>
+              </div>
+            )
+          )}
+
+          {/* Muscles */}
+          {(primary.length > 0 || secondary.length > 0) && (
+            <div className="space-y-1.5 text-sm">
+              {primary.length > 0 && (
+                <div>
+                  <span className="font-semibold">Główne mięśnie: </span>
+                  <span className="text-muted-foreground">{primary.join(", ")}</span>
+                </div>
+              )}
+              {secondary.length > 0 && (
+                <div>
+                  <span className="font-semibold">Dodatkowe: </span>
+                  <span className="text-muted-foreground">{secondary.join(", ")}</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Instructions */}
+          {instructions.length > 0 && (
+            <div className="space-y-2">
+              <h2 className="text-lg font-semibold">Instrukcje</h2>
+              <ol className="list-decimal pl-5 text-sm text-muted-foreground space-y-1.5">
+                {instructions.map((step, i) => (
+                  <li key={i} className="leading-relaxed break-words">{step}</li>
+                ))}
+              </ol>
+            </div>
+          )}
         </div>
       </div>
-
-      {/* Days & Exercises */}
-      <div className="space-y-10">
-        
-        {(!routine.days || routine.days.length === 0) && (
-           <div className="flex flex-col items-center justify-center py-16 border border-dashed border-border/50 rounded-3xl bg-muted/5 text-center">
-             <Dumbbell className="h-10 w-10 text-muted-foreground mb-4 opacity-50" />
-             <h3 className="text-lg font-semibold">Pusto tutaj</h3>
-             <p className="text-muted-foreground max-w-xs mx-auto mt-2">
-               Ta rutyna nie ma zapisanych żadnych ćwiczeń.
-             </p>
-             <Button variant="outline" className="mt-6" asChild>
-               <Link to="/routines">Wróć do listy</Link>
-             </Button>
-           </div>
-        )}
-
-        {(routine.days || []).map((day) => (
-          <section key={day.id} className="space-y-4">
-            <div className="flex items-center gap-2 border-b border-border/40 pb-2">
-              <Calendar className="h-5 w-5 text-[var(--gv-accent)]" />
-              <h2 className="text-xl font-semibold">{day.name}</h2>
-            </div>
-
-            <div className="grid gap-4">
-              {day.exercises.map((ex, idx) => {
-                const meta = parseMeta(ex.notes);
-                const img = meta.thumb;
-
-                return (
-                  <motion.div
-                    key={ex.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: idx * 0.05 }}
-                  >
-                    <Card className="overflow-hidden rounded-2xl border border-border/50 bg-[color-mix(in_oklab,var(--gv-bg)_95%,#fff_5%)]">
-                      <CardContent className="p-0 sm:flex">
-                        
-                        {/* Image Thumbnail */}
-                        <div 
-                          className={`shrink-0 bg-muted/30 sm:w-32 sm:border-r border-border/50 grid place-items-center p-2 transition-colors ${img ? "cursor-zoom-in hover:bg-muted/50" : ""}`}
-                          onClick={() => img && setPreviewImage(img)}
-                        >
-                          {img ? (
-                            <img src={img} alt={ex.name} className="h-20 w-20 object-contain" loading="lazy" />
-                          ) : (
-                            <Dumbbell className="h-8 w-8 opacity-20" />
-                          )}
-                        </div>
-
-                        {/* Details */}
-                        <div className="flex-1 p-4">
-                          <div className="mb-3 flex items-start justify-between">
-                            <h3 className="font-semibold text-lg">{ex.name}</h3>
-                            {ex.restSeconds && (
-                              <div className="flex items-center gap-1 text-xs text-muted-foreground bg-muted/50 px-2 py-1 rounded-full">
-                                <Clock className="h-3 w-3" />
-                                {ex.restSeconds}s przerwy
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Sets Table */}
-                          <div className="overflow-x-auto">
-                            <table className="w-full text-sm text-left">
-                              <thead>
-                                <tr className="text-xs text-muted-foreground border-b border-border/30">
-                                  <th className="pb-2 font-medium w-12">Seria</th>
-                                  <th className="pb-2 font-medium">Kg</th>
-                                  <th className="pb-2 font-medium">Powt.</th>
-                                  <th className="pb-2 font-medium">RPE</th>
-                                </tr>
-                              </thead>
-                              <tbody className="divide-y divide-border/10">
-                                {meta.sets.map((s, i) => (
-                                  <tr key={i}>
-                                    <td className="py-2 text-muted-foreground text-xs">{i + 1}</td>
-                                    <td className="py-2 font-medium">{s.weight ?? "—"}</td>
-                                    <td className="py-2">{s.repsMin && s.repsMax ? `${s.repsMin}-${s.repsMax}` : (s.repsMin ?? "—")}</td>
-                                    <td className="py-2 text-muted-foreground">{s.rpe ?? "—"}</td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </motion.div>
-                );
-              })}
-            </div>
-          </section>
-        ))}
-      </div>
-
-      {/* Full Screen Image Preview Overlay */}
-      <AnimatePresence>
-        {previewImage && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setPreviewImage(null)}
-            className="fixed inset-0 z-[999] grid place-items-center bg-black/90 backdrop-blur-sm p-4 cursor-zoom-out"
-          >
-            <button className="absolute top-4 right-4 p-2 bg-white/10 rounded-full text-white hover:bg-white/20 transition">
-              <X className="h-6 w-6" />
-            </button>
-
-            <motion.img
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.8, opacity: 0 }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              src={previewImage}
-              alt="Preview"
-              className="max-h-[85vh] max-w-[95vw] object-contain rounded-lg shadow-2xl"
-              onClick={(e) => e.stopPropagation()}
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
     </main>
   );
 }
