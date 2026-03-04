@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="https://via.placeholder.com/150" alt="GrindVibe Logo" width="150" height="150" />
+  <img src="./docs/images/logo.png" alt="GrindVibe Logo" width="150" height="150" />
   <h1>💪 GrindVibe</h1>
   <p>Your personal platform for workout management and routine planning! 🚀</p>
 
@@ -123,29 +123,4 @@ Here are some glimpses of the application:
 
 *(Note: Create a `docs/images` folder in your repository root and place the above screenshots there with matching filenames: `home.png`, `exercises.png`, and `new_routine.png`.)*
 
----
 
-## 🔧 Troubleshooting
-
-### ❌ Google Login Error 400: `redirect_uri_mismatch`
-If you encounter an error stating **"Nie możesz się zalogować... Błąd 400: redirect_uri_mismatch"** when trying to sign in with Google:
-
-**Cause:** The port your frontend is currently running on (e.g., `http://localhost:5174`) is not registered in your Google Cloud Console.
-
-**How to fix:**
-1. Go to your [Google Cloud Console](https://console.cloud.google.com/).
-2. Navigate to **APIs & Services** -> **Credentials**.
-3. Edit your OAuth 2.0 Client ID for this project.
-4. Under **"Authorized JavaScript origins"** and **"Authorized redirect URIs"**, add the exact URL your Vite app is currently using (e.g., `http://localhost:5173` and `http://localhost:5174`).
-5. Save the changes. **Note:** It might take up to 5-10 minutes for Google's servers to propagate this change.
-
----
-
-## 👨‍💻 Author
-
-Application developed with passion. If you have any questions, feel free to contact me or check out my other projects!
-
-- **GitHub:** [@YourGitHubUsername](https://github.com/YourGitHubUsername)
-- **LinkedIn:** [Your Profile](https://linkedin.com/in/YourProfile)
-
-> _Did you like this project? I would appreciate it if you leave a ⭐ on the repository!_
