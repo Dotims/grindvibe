@@ -10,7 +10,7 @@ export const selectQueryParams = createSelector(
         page: f.page,
         pageSize: f.pageSize,
         muscle: f.muscle ? [f.muscle] : [],
-        quipment: f.equipment ? [f.equipment] : [],
+        equipment: f.equipment ? [f.equipment] : [],
     })
 );
 

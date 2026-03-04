@@ -49,7 +49,7 @@ async function api<T>(path: string, config: RequestInit = {}): Promise<T> {
             errorMessage = text;
         }
       }
-    } catch (e) { /* ignore */ }
+    } catch { /* ignore */ }
 
     if (response.status === 401) {
         console.warn("[API] 401 Unauthorized - brak dostępu lub token wygasł.");
