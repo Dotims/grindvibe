@@ -113,12 +113,33 @@ cd grindvibe
 
 ## 📸 Screenshots
 
-*(You can add a few screenshots of your application here to make the repository more attractive. Add paths to images or just attach them here, e.g.:)*
+Here are some glimpses of the application:
 
-```markdown
-![Homepage](path_to_image_1)
-![User Dashboard](path_to_image_2)
-```
+![Homepage](./docs/images/home.png)
+<br/>
+![Exercises View](./docs/images/exercises.png)
+<br/>
+![New Routine View](./docs/images/new_routine.png)
+
+*(Note: Create a `docs/images` folder in your repository root and place the above screenshots there with matching filenames: `home.png`, `exercises.png`, and `new_routine.png`.)*
+
+---
+
+## 🔧 Troubleshooting
+
+### ❌ Google Login Error 400: `redirect_uri_mismatch`
+If you encounter an error stating **"Nie możesz się zalogować... Błąd 400: redirect_uri_mismatch"** when trying to sign in with Google:
+
+**Cause:** The port your frontend is currently running on (e.g., `http://localhost:5174`) is not registered in your Google Cloud Console.
+
+**How to fix:**
+1. Go to your [Google Cloud Console](https://console.cloud.google.com/).
+2. Navigate to **APIs & Services** -> **Credentials**.
+3. Edit your OAuth 2.0 Client ID for this project.
+4. Under **"Authorized JavaScript origins"** and **"Authorized redirect URIs"**, add the exact URL your Vite app is currently using (e.g., `http://localhost:5173` and `http://localhost:5174`).
+5. Save the changes. **Note:** It might take up to 5-10 minutes for Google's servers to propagate this change.
+
+---
 
 ## 👨‍💻 Author
 
