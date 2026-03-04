@@ -114,12 +114,10 @@ cd grindvibe
 
 Here are some glimpses of the application:
 
-![Homepage](./docs/images/home.png)
+![Homepage](./docs/images/web1.png)
 <br/>
-![Exercises View](./docs/images/exercises.png)
+![Exercises View](./docs/images/web2.png)
 <br/>
-![New Routine View](./docs/images/new_routine.png)
-
-*(Note: Create a `docs/images` folder in your repository root and place the above screenshots there with matching filenames: `home.png`, `exercises.png`, and `new_routine.png`.)*
+![New Routine View](./docs/images/web3.png)
 
 
