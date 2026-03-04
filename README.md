@@ -1,5 +1,4 @@
 <div align="center">
-  <img src="./docs/images/logo.png" alt="GrindVibe Logo" width="150" height="150" />
   <h1>💪 GrindVibe</h1>
   <p>Your personal platform for workout management and routine planning! 🚀</p>
 
