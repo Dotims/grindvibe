@@ -114,10 +114,19 @@ cd grindvibe
 
 Here are some glimpses of the application:
 
-![Homepage](./docs/images/web1.png)
-<br/>
-![Exercises View](./docs/images/web2.png)
-<br/>
-![New Routine View](./docs/images/web3.png)
+<div align="center">
+  <table>
+    <tr>
+      <td><img src="./docs/images/web1.png" alt="Homepage" width="300"/></td>
+      <td><img src="./docs/images/web2.png" alt="Exercises View" width="300"/></td>
+      <td><img src="./docs/images/web3.png" alt="New Routine View" width="300"/></td>
+    </tr>
+    <tr>
+      <td align="center"><b>Homepage</b></td>
+      <td align="center"><b>Exercises</b></td>
+      <td align="center"><b>New Routine</b></td>
+    </tr>
+  </table>
+</div>
 
 
